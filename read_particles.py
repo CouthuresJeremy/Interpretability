@@ -23,15 +23,6 @@ def mutual_information(df, feature1, feature2):
     return mi
 
 
-# Calculate entropy between two variables
-def calculate_entropy(df, feature1, feature2):
-    # Calculate the joint probability distribution
-    joint_prob = df.groupby([feature1, feature2]).size() / len(df)
-    # Calculate the entropy
-    entropy = -joint_prob * np.log(joint_prob)
-    return entropy.sum()
-
-
 from sklearn.metrics import mutual_info_score
 
 from sklearn.neighbors import KernelDensity
@@ -62,6 +53,27 @@ def conditional_entropy(x, y):
     conditional_entropy_value = -np.mean(log_joint_density - log_x_density)
 
     return conditional_entropy_value
+
+
+def entropy(x):
+    """
+
+    Estimate entropy H(X) using kernel density estimation.
+
+    """
+    # Reshape for sklearn
+    x_reshaped = x.reshape(-1, 1)
+
+    # Fit kernel density model for marginal distribution
+    kde_x = KernelDensity(kernel="gaussian", bandwidth=0.5).fit(x_reshaped)
+
+    # Calculate log density estimates
+    log_x_density = kde_x.score_samples(x_reshaped)
+
+    # Compute entropy
+    entropy_value = -np.mean(log_x_density)
+
+    return entropy_value
 
 
 # Load Data Function
@@ -498,24 +510,47 @@ neuron_86_output = activations_1[86]
 neuron_44_output = activations_1[44]
 neuron_935_output = activations_4[935]
 
-for feature in df.columns:
-    feature_values = df[feature].to_numpy()
-    # If the feature is not continuous, skip
-    if not np.issubdtype(feature_values.dtype, np.number):
-        print(f"Feature {feature} is not continuous")
-        continue
-    print(f"Feature: {feature}")
-    print(
-        f"Conditional Entropy: {conditional_entropy(neuron_935_output, feature_values)}"
-    )
-print(
-    mutual_info_regression(
-        # df.to_numpy().reshape(-1, 1),
-        df.to_numpy(),
-        neuron_935_output,
-        random_state=42,
-    )
+# for feature in df.columns:
+#     feature_values = df[feature].to_numpy()
+#     # If the feature is not continuous, skip
+#     if not np.issubdtype(feature_values.dtype, np.number):
+#         print(f"Feature {feature} is not continuous")
+#         continue
+#     print(f"Feature: {feature}")
+#     print(
+#         f"Conditional Entropy: {conditional_entropy(neuron_935_output, feature_values)}"
+#     )
+
+# Plot r vs z with the color of the points representing the output of neuron 86
+plt.scatter(df_scaled["z"], df_scaled["r"], c=np.log10(df["pt"]))
+plt.xlabel("z")
+plt.ylabel("r")
+plt.colorbar()
+# plt.savefig(f"neuron_86_output_event{event:09d}_r_z.png")
+plt.show()
+
+
+# Remove non-continuous features
+df_continuous = df.select_dtypes(include=[np.number])
+mutual_information_values = mutual_info_regression(
+    df_continuous.to_numpy(),
+    neuron_935_output,
+    random_state=42,
 )
+# Print the feature names and their mutual information with neuron 935
+for i, feature in enumerate(df_continuous.columns):
+    conditional_entropy_value = conditional_entropy(
+        neuron_935_output, df_continuous[feature].to_numpy()
+    )
+    # Compute the entropy of the feature
+    # compute density probability pk of feature
+    # Use kernel density estimation
+    pk = 1
+    entropy_value = -np.sum(pk * np.log(pk))
+    # Compute entropy with sklearn
+    print(
+        f"Feature: {feature}, Mutual Information: {mutual_information_values[i]}, Conditional Entropy: {conditional_entropy_value}, Sum: {mutual_information_values[i] + conditional_entropy_value}, Entropy: {entropy_value} or {entropy(df_continuous[feature].to_numpy())}"
+    )
 exit()
 
 # Plot r vs z with the color of the points representing the output of neuron 86
