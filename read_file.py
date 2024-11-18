@@ -85,6 +85,26 @@ plt.grid(True)
 plt.savefig(plot_dir / f"{layer_1_name}_neurons_histogram.pdf")
 plt.show()
 
+# # Plot all other neurons
+# for i in range(len(activations[layer_1_name].T)):
+#     plt.hist(
+#         list(activations[layer_1_name].T[i]),
+#         bins=np.arange(
+#             np.min(list(activations[layer_1_name].T[i])),
+#             np.max(list(activations[layer_1_name].T[i])),
+#             0.025,
+#         ),
+#         alpha=0.5,
+#     )
+
+# plt.xlabel("Activation")
+# plt.ylabel("Count")
+# plt.title(f"{layer_1_name} Neurons Activation Histogram")
+# plt.grid(True)
+# plt.savefig(plot_dir / f"{layer_1_name}_all_neurons_histogram.pdf")
+# plt.show()
+exit()
+
 layer_4_name = keys[3]
 plt.hist(
     list(activations[layer_4_name].T[935]),

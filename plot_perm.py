@@ -11,7 +11,7 @@ csv_file = csv_files[1]
 csv_file = csv_dir / "neurons_perm_event000000101.csv"
 df = pd.read_csv(csv_file)
 print(df.head())
-exit()
+# exit()
 
 # Remove reference neuron filter
 reference_neuron_filter = df["neuron"] == -1
@@ -171,3 +171,35 @@ def select_points_and_plot(df, selected_metric, threshold):
 # You can change the metric and threshold value as needed
 select_points_and_plot(mean_df, selected_metric="loss", threshold=0.0174)
 # select_points_and_plot(mean_df, selected_metric="loss", threshold=0.0177)
+
+
+def select_points_and_plot(mean_df, selected_metric, threshold):
+    selected_points = mean_df[mean_df[selected_metric] < threshold]
+    # other_metrics = [m for m in metrics if m != selected_metric]
+    other_metrics = [m for m in metrics]
+    print(selected_points)
+
+    for metric in other_metrics:
+        plt.scatter(mean_df["neuron"], mean_df[metric], alpha=0.5, label="All Neurons")
+        plt.scatter(
+            selected_points["neuron"],
+            selected_points[metric],
+            color="r",
+            label="Selected Neurons",
+        )
+        plt.xlabel("Neuron")
+        plt.ylabel(metric.capitalize())
+        plt.title(
+            f'{metric.capitalize()} for Selected Points ("{selected_metric}" > {threshold})'
+        )
+        plt.legend()
+        plt.grid(True)
+        plt.savefig(
+            plot_dir / f"{metric}_selected_points_{threshold}_inf_{selected_metric}.pdf"
+        )
+        plt.show()
+
+
+mean_df_layer_4 = mean_df[mean_df["layer"] == 4]
+print(mean_df_layer_4)
+select_points_and_plot(mean_df_layer_4, selected_metric="loss", threshold=0.014)
