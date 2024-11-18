@@ -434,6 +434,14 @@ df_scaled = add_coordinate_transformations(df_scaled)
 
 df = df_scaled
 
+
+# Map particle_id to [0..N]
+particle_id_map = {
+    particle_id: i for i, particle_id in enumerate(df["particle_id"].unique())
+}
+df["particle_id_mapped"] = df["particle_id"].map(particle_id_map)
+
+
 from sklearn.metrics import mutual_info_score
 from sklearn.feature_selection import mutual_info_regression
 
@@ -521,7 +529,7 @@ neuron_935_output = activations_4[935]
 #         f"Conditional Entropy: {conditional_entropy(neuron_935_output, feature_values)}"
 #     )
 
-# Plot r vs z with the color of the points representing the output of neuron 86
+# Plot r vs z with the color of the points representing the pt
 plt.scatter(df_scaled["z"], df_scaled["r"], c=np.log10(df["pt"]))
 plt.xlabel("z")
 plt.ylabel("r")
@@ -529,28 +537,80 @@ plt.colorbar()
 # plt.savefig(f"neuron_86_output_event{event:09d}_r_z.png")
 plt.show()
 
+plt.scatter(df_scaled["z"], df_scaled["r"], c=df["particle_id_mapped"])
+plt.xlabel("z")
+plt.ylabel("r")
+plt.colorbar()
+plt.show()
+
 
 # Remove non-continuous features
 df_continuous = df.select_dtypes(include=[np.number])
-mutual_information_values = mutual_info_regression(
-    df_continuous.to_numpy(),
-    neuron_935_output,
-    random_state=42,
-)
-# Print the feature names and their mutual information with neuron 935
-for i, feature in enumerate(df_continuous.columns):
-    conditional_entropy_value = conditional_entropy(
-        neuron_935_output, df_continuous[feature].to_numpy()
+
+from sklearn.feature_selection import mutual_info_regression
+
+# Compute mutual information for all neuron outputs and save them into a csv file
+mutual_information_df = pd.DataFrame()
+
+# Start from the last layer
+reversed_neuron_activations = list(neuron_activations.keys())[::-1]
+for layer_index, layer in enumerate(reversed_neuron_activations):
+    layer_index = len(neuron_activations) - layer_index
+
+    mutual_information_df_layer = pd.DataFrame()
+    for neuron_index, neuron_output in enumerate(neuron_activations[layer]):
+        print(f"Layer {layer_index} Neuron {neuron_index}")
+        mutual_information_values = mutual_info_regression(
+            df_continuous.to_numpy(),
+            neuron_output,
+            random_state=42,
+        )
+        # Add new row with (layer_index, neuron_index, mutual_information_feature_x, mutual_information_feature_y, ...)
+
+        mutual_information_df_layer = mutual_information_df_layer._append(
+            {
+                "layer": layer_index,
+                "neuron": neuron_index,
+                **{
+                    feature: mutual_information_values[i]
+                    for i, feature in enumerate(df_continuous.columns)
+                },
+            },
+            ignore_index=True,
+        )
+
+    # Save the mutual information to a csv file
+    mutual_information_df_layer.to_csv(
+        f"mutual_information_event{event:09d}_layer{layer_index}.csv", index=False
     )
-    # Compute the entropy of the feature
-    # compute density probability pk of feature
-    # Use kernel density estimation
-    pk = 1
-    entropy_value = -np.sum(pk * np.log(pk))
-    # Compute entropy with sklearn
-    print(
-        f"Feature: {feature}, Mutual Information: {mutual_information_values[i]}, Conditional Entropy: {conditional_entropy_value}, Sum: {mutual_information_values[i] + conditional_entropy_value}, Entropy: {entropy_value} or {entropy(df_continuous[feature].to_numpy())}"
+
+    # Add the layer to the mutual information dataframe (do not use append as it is deprecated)
+    mutual_information_df = mutual_information_df._append(
+        mutual_information_df_layer, ignore_index=True
     )
+
+    # Save the mutual information to a csv file
+    mutual_information_df.to_csv(
+        f"mutual_information_event{event:09d}.csv", index=False
+    )
+
+# Save the mutual information to a csv file
+mutual_information_df.to_csv(f"mutual_information_event{event:09d}.csv", index=False)
+
+# # Print the feature names and their mutual information with neuron 935
+# for i, feature in enumerate(df_continuous.columns):
+#     conditional_entropy_value = conditional_entropy(
+#         neuron_935_output, df_continuous[feature].to_numpy()
+#     )
+#     # Compute the entropy of the feature
+#     # compute density probability pk of feature
+#     # Use kernel density estimation
+#     pk = 1
+#     entropy_value = -np.sum(pk * np.log(pk))
+#     # Compute entropy with sklearn
+#     print(
+#         f"Feature: {feature}, Mutual Information: {mutual_information_values[i]}, Conditional Entropy: {conditional_entropy_value}, Sum: {mutual_information_values[i] + conditional_entropy_value}, Entropy: {entropy_value} or {entropy(df_continuous[feature].to_numpy())}"
+#     )
 exit()
 
 # Plot r vs z with the color of the points representing the output of neuron 86
@@ -660,12 +720,6 @@ df["eta"] = -np.log(np.tan(df["theta"] / 2))
 # plot_neuron_output_vs_features(
 #     neuron_935_output, df, ["x", "y", "z", "r", "phi", "theta", "rho", "eta"]
 # )
-
-# Map particle_id to [0..N]
-particle_id_map = {
-    particle_id: i for i, particle_id in enumerate(df["particle_id"].unique())
-}
-df["particle_id_mapped"] = df["particle_id"].map(particle_id_map)
 
 exit()
 
