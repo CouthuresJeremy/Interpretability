@@ -235,12 +235,9 @@ def plot_neuron_output_vs_features(neuron_output, df, features):
 particles = load_csv_data(
     file_name="event000000101-hard-cut-particles.csv", directory="csv"
 )
-# df.columns = ["r", "phi", "z"]
-# print(particles.head())
 
 # Load the truth
 truth = load_csv_data(file_name="event000000101-hard-cut-truth.csv", directory="csv")
-# print(truth.head())
 
 # Count the number of particle_id_1 != particle_id_2
 print(truth[truth["particle_id_1"] != truth["particle_id_2"]].shape)
@@ -253,10 +250,6 @@ truth_particles = particles[
     | particles["particle_id"].isin(truth["particle_id_1"])
     | particles["particle_id"].isin(truth["particle_id_2"])
 ]
-# print(particles.shape)
-# print(truth_particles.shape)
-
-# print(truth_particles.head())
 
 # Plot the distribution of the particles
 # plot_feature_distributions(particles)
@@ -335,30 +328,11 @@ def plot_feature_distribution(particles, truth_particles):
 truth_particles = truth.merge(
     particles, left_on="particle_id", right_on="particle_id", suffixes=("", "_particle")
 )
-# truth_particles = truth.merge(
-#     particles, on="particle_id", suffixes=("_truth", "_particle")
-# )
-# truth_particles = truth_particles.merge(
-#     particles,
-#     left_on="particle_id_1",
-#     right_on="particle_id",
-#     suffixes=("", "_particle_1"),
-# )
-# truth_particles = truth_particles.merge(
-#     particles,
-#     left_on="particle_id_2",
-#     right_on="particle_id",
-#     suffixes=("", "_particle_2"),
-# )
-# print(truth_particles.head())
-# print(truth_particles.columns)
-# print(truth_particles.shape)
 
 # Compute r, phi, z for the truth particles
 truth_particles["r"] = np.sqrt(truth_particles["x"] ** 2 + truth_particles["y"] ** 2)
 truth_particles["phi"] = np.arctan2(truth_particles["y"], truth_particles["x"])
 truth_particles["z"] = truth_particles["z"]
-# print(truth_particles.head())
 
 # Convert r, phi and z to float32 for the matching
 truth_particles_unscaled = truth_particles.copy()
@@ -369,7 +343,6 @@ truth_particles_unscaled["z"] = truth_particles_unscaled["z"] / 1000
 truth_particles_unscaled["r"] = truth_particles_unscaled["r"].astype("float32")
 truth_particles_unscaled["phi"] = truth_particles_unscaled["phi"].astype("float32")
 truth_particles_unscaled["z"] = truth_particles_unscaled["z"].astype("float32")
-print(truth_particles_unscaled.head())
 
 # Save the unscaled truth particles to csv
 truth_particles_unscaled.to_csv(
@@ -408,8 +381,6 @@ df_scaled = df_scaled.merge(
     suffixes=("", "_truth"),
     validate="one_to_many",
 )
-print(df_scaled.tail())
-print(df_scaled.shape)
 # Count duplicated [r, phi, z] in the input data
 print(df_scaled.duplicated(subset=["r", "phi", "z"]).sum())
 
