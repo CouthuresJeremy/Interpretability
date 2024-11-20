@@ -152,10 +152,15 @@ def plot_output_correlation(output1, output2, label1, label2):
 
 # Cartesian and Spherical Coordinates Calculation Function
 def add_coordinate_transformations(df):
+    # Cyllindrical coordinates to cartesian
     df["x"] = df["r"] * np.cos(df["phi"])
     df["y"] = df["r"] * np.sin(df["phi"])
+
+    # Cyllindrical coordinates to spherical
     df["theta"] = np.arctan2(df["r"], df["z"])
     df["rho"] = np.sqrt(df["r"] ** 2 + df["z"] ** 2)
+
+    # Calculate eta
     df["eta"] = -np.log(np.tan(df["theta"] / 2))
     return df
 
