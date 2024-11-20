@@ -358,9 +358,33 @@ truth_particles = truth.merge(
 truth_particles["r"] = np.sqrt(truth_particles["x"] ** 2 + truth_particles["y"] ** 2)
 truth_particles["phi"] = np.arctan2(truth_particles["y"], truth_particles["x"])
 truth_particles["z"] = truth_particles["z"]
+# print(truth_particles.head())
 
-print(truth_particles.head())
+# Convert r, phi and z to float32 for the matching
+truth_particles_unscaled = truth_particles.copy()
+truth_particles_unscaled["r"] = truth_particles_unscaled["r"] / 1000
+truth_particles_unscaled["phi"] = truth_particles_unscaled["phi"] / 3.14
+truth_particles_unscaled["z"] = truth_particles_unscaled["z"] / 1000
+# Change data type to float32
+truth_particles_unscaled["r"] = truth_particles_unscaled["r"].astype("float32")
+truth_particles_unscaled["phi"] = truth_particles_unscaled["phi"].astype("float32")
+truth_particles_unscaled["z"] = truth_particles_unscaled["z"].astype("float32")
+print(truth_particles_unscaled.head())
 
+# Save the unscaled truth particles to csv
+truth_particles_unscaled.to_csv(
+    "data/event000000101-truth-particles-unscaled.csv", index=False
+)
+
+# Reload the unscaled truth particles
+truth_particles_unscaled = pd.read_csv(
+    "data/event000000101-truth-particles-unscaled.csv"
+)
+
+# Rescale the truth particles
+truth_particles_unscaled["r"] = truth_particles_unscaled["r"] * 1000
+truth_particles_unscaled["phi"] = truth_particles_unscaled["phi"] * 3.14
+truth_particles_unscaled["z"] = truth_particles_unscaled["z"] * 1000
 
 # Load the input data
 df = load_csv_data(file_name="input_data_event000000101.csv", directory="csv")
@@ -378,30 +402,29 @@ print(df_scaled.duplicated(subset=["r", "phi", "z"]).sum())
 print(truth_particles.duplicated(subset=["x", "y", "z"]).sum())
 
 # Try to match (r, phi, z) from the truth to the input data
-# df_scaled = df_scaled.merge(
-#     truth_particles,
-#     on=["r", "phi", "z"],
-#     suffixes=("", "_truth"),
-#     validate="one_to_one",
-# )
-# Do the match manually
-# df_scaled = df_scaled.merge(
-#     truth_particles,
-#     on=["r", "phi", "z"],
-#     suffixes=("", "_truth"),
-#     how="left",
-# )
-# Compare equality of first line of the truth and the input data
-print(truth_particles.iloc[0][["r", "phi", "z"]])
-print(df_scaled.iloc[0])
-print(truth_particles.iloc[0][["r", "phi", "z"]] == df_scaled.iloc[0])
-# print dtype of the columns
-print(truth_particles[["r", "phi", "z"]].dtypes)
-print(df_scaled[["r", "phi", "z"]].dtypes)
-# print the difference between the two dataframes
-# print(truth_particles[["r", "phi", "z"]] - df_scaled[["r", "phi", "z"]])
-# Consider the difference to be zero if it is less than 1e-6
-# print((truth_particles[["r", "phi", "z"]] - df_scaled[["r", "phi", "z"]]).abs() < 1e-6)
+df_scaled = df_scaled.merge(
+    truth_particles_unscaled,
+    on=["r", "phi", "z"],
+    suffixes=("", "_truth"),
+    validate="one_to_many",
+)
+print(df_scaled.tail())
+print(df_scaled.shape)
+# Count duplicated [r, phi, z] in the input data
+print(df_scaled.duplicated(subset=["r", "phi", "z"]).sum())
+
+# Print hit id in truth that is not in the input data
+print(
+    truth_particles_unscaled[
+        ~truth_particles_unscaled["hit_id"].isin(df_scaled["hit_id"])
+    ].shape
+)
+
+print(
+    truth_particles_unscaled[
+        ~truth_particles_unscaled["hit_id"].isin(df_scaled["hit_id"])
+    ]
+)
 
 # Print the number of duplicated lines in df_scaled
 print(df_scaled.duplicated(subset=["r", "phi", "z"]).sum())
@@ -411,52 +434,15 @@ mathed_file = Path("input_data_event000000101_matched.csv")
 if mathed_file.exists():
     df_scaled = pd.read_csv("input_data_event000000101_matched.csv")
 else:
-    # Consider matching if all the differences are less than 1e-6
-    for hit in df_scaled.index:
-        # Find the matching truth hit for the hit with the same (r, phi, z)
-        matching_truth_hit = truth_particles[
-            ((truth_particles["r"] - df_scaled.loc[hit, "r"]).abs() < 1e-3)
-            & ((truth_particles["phi"] - df_scaled.loc[hit, "phi"]).abs() < 1e-6)
-            & ((truth_particles["z"] - df_scaled.loc[hit, "z"]).abs() < 1e-12)
-        ]
-        assert len(matching_truth_hit) >= 1, f"{matching_truth_hit = }"
-        # If there is a matching truth hit, assign the truth hit to the hit
-        if not matching_truth_hit.empty:
-            # Add particle information to the hit for each matching truth hit
-            for matching_truth_hit_index in range(len(matching_truth_hit.index)):
-                if matching_truth_hit_index == 0:
-                    df_scaled.loc[hit, "particle_id"] = matching_truth_hit[
-                        "particle_id"
-                    ].values[0]
-                    for feature in truth_particles.columns:
-                        if feature not in df.columns:
-                            df_scaled.loc[hit, feature] = matching_truth_hit[
-                                feature
-                            ].values[0]
-                else:
-                    new_hit = df_scaled.loc[hit].copy()
-                    new_hit["particle_id"] = matching_truth_hit["particle_id"].values[
-                        matching_truth_hit_index
-                    ]
-                    for feature in truth_particles.columns:
-                        if feature not in df.columns:
-                            new_hit[feature] = matching_truth_hit[feature].values[
-                                matching_truth_hit_index
-                            ]
-                    df_scaled = df_scaled._append(new_hit, ignore_index=True)
-        # If there is no matching truth hit, assign -1 to the hit
-        # if len(matching_truth_hit) > 1:
-        #     print(
-        #         f"len(matching_truth_hit): {len(matching_truth_hit)}, hit: {hit}, matching_truth_hit: {matching_truth_hit}"
-        #     )
-        assert (
-            len(matching_truth_hit) >= 1
-        ), f"len(matching_truth_hit): {len(matching_truth_hit)}, hit: {hit}, matching_truth_hit: {matching_truth_hit}"
-
     # Save the matched input data
     df_scaled.to_csv(mathed_file, index=False)
 
 print(df_scaled.head())
+
+# Should be equal
+assert (
+    df_scaled.shape[0] <= truth_particles.shape[0]
+), f"{df_scaled.shape = } {truth_particles.shape = }"
 
 # Add various coordinate transformations
 df_scaled = add_coordinate_transformations(df_scaled)
