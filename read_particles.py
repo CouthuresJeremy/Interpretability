@@ -236,11 +236,14 @@ particles = load_csv_data(
     file_name="event000000101-hard-cut-particles.csv", directory="csv"
 )
 # df.columns = ["r", "phi", "z"]
-print(particles.head())
+# print(particles.head())
 
 # Load the truth
 truth = load_csv_data(file_name="event000000101-hard-cut-truth.csv", directory="csv")
-print(truth.head())
+# print(truth.head())
+
+# Count the number of particle_id_1 != particle_id_2
+print(truth[truth["particle_id_1"] != truth["particle_id_2"]].shape)
 
 
 # Get particles corresponding to the truth
@@ -250,10 +253,10 @@ truth_particles = particles[
     | particles["particle_id"].isin(truth["particle_id_1"])
     | particles["particle_id"].isin(truth["particle_id_2"])
 ]
-print(particles.shape)
-print(truth_particles.shape)
+# print(particles.shape)
+# print(truth_particles.shape)
 
-print(truth_particles.head())
+# print(truth_particles.head())
 
 # Plot the distribution of the particles
 # plot_feature_distributions(particles)
@@ -332,6 +335,9 @@ def plot_feature_distribution(particles, truth_particles):
 truth_particles = truth.merge(
     particles, left_on="particle_id", right_on="particle_id", suffixes=("", "_particle")
 )
+# truth_particles = truth.merge(
+#     particles, on="particle_id", suffixes=("_truth", "_particle")
+# )
 # truth_particles = truth_particles.merge(
 #     particles,
 #     left_on="particle_id_1",
@@ -344,9 +350,9 @@ truth_particles = truth.merge(
 #     right_on="particle_id",
 #     suffixes=("", "_particle_2"),
 # )
-print(truth_particles.head())
-print(truth_particles.columns)
-print(truth_particles.shape)
+# print(truth_particles.head())
+# print(truth_particles.columns)
+# print(truth_particles.shape)
 
 # Compute r, phi, z for the truth particles
 truth_particles["r"] = np.sqrt(truth_particles["x"] ** 2 + truth_particles["y"] ** 2)
@@ -359,12 +365,12 @@ print(truth_particles.head())
 # Load the input data
 df = load_csv_data(file_name="input_data_event000000101.csv", directory="csv")
 df.columns = ["r", "phi", "z"]
-print(df.head())
+# print(df.head())
 print(df.shape)
 
 # Scale the input data
 df_scaled = scale_data(df, scales=[1000, 3.14, 1000])
-print(df_scaled.head())
+# print(df_scaled.head())
 
 # Check for (r, phi, z) duplicates in the input data
 print(df_scaled.duplicated(subset=["r", "phi", "z"]).sum())
@@ -393,9 +399,12 @@ print(truth_particles.iloc[0][["r", "phi", "z"]] == df_scaled.iloc[0])
 print(truth_particles[["r", "phi", "z"]].dtypes)
 print(df_scaled[["r", "phi", "z"]].dtypes)
 # print the difference between the two dataframes
-print(truth_particles[["r", "phi", "z"]] - df_scaled[["r", "phi", "z"]])
+# print(truth_particles[["r", "phi", "z"]] - df_scaled[["r", "phi", "z"]])
 # Consider the difference to be zero if it is less than 1e-6
-print((truth_particles[["r", "phi", "z"]] - df_scaled[["r", "phi", "z"]]).abs() < 1e-6)
+# print((truth_particles[["r", "phi", "z"]] - df_scaled[["r", "phi", "z"]]).abs() < 1e-6)
+
+# Print the number of duplicated lines in df_scaled
+print(df_scaled.duplicated(subset=["r", "phi", "z"]).sum())
 
 # Load the file if it exists
 mathed_file = Path("input_data_event000000101_matched.csv")
