@@ -586,17 +586,18 @@ for layer_index, layer in enumerate(reversed_neuron_activations):
 
     # File path for the current layer's CSV
     layer_file_path = f"mutual_information_event{event:09d}_layer{layer_index}.csv"
-    processed_neurons = []
 
-    # Check if a CSV already exists for the current layer and load it
+    # Initialize or load existing data for the layer
     if os.path.exists(layer_file_path):
-        existing_df = pd.read_csv(layer_file_path)
-        processed_neurons = existing_df["neuron"].tolist()
+        mutual_information_df_layer = pd.read_csv(layer_file_path)
+        processed_neurons = mutual_information_df_layer["neuron"].tolist()
         print(
             f"Found existing file for Layer {layer_index}. Resuming from Neuron {len(processed_neurons)}"
         )
+    else:
+        mutual_information_df_layer = pd.DataFrame()
+        processed_neurons = []
 
-    mutual_information_df_layer = pd.DataFrame()
     for neuron_idx in range(layer_outputs.shape[1]):
         if neuron_idx in processed_neurons:
             continue  # Skip already processed neurons
@@ -618,39 +619,31 @@ for layer_index, layer in enumerate(reversed_neuron_activations):
         #         )
         #     )
 
-        # Add new row to the layer DataFrame
+        # Create a new row for the current neuron
+        new_row = {
+            "layer": layer_index,
+            "neuron": neuron_idx,
+            **{
+                feature: mutual_information_values[i]
+                for i, feature in enumerate(df_continuous.columns)
+            },
+        }
+
+        # Append the new row to the existing DataFrame for the layer
         mutual_information_df_layer = pd.concat(
-            [
-                mutual_information_df_layer,
-                pd.DataFrame(
-                    [
-                        {
-                            "layer": layer_index,
-                            "neuron": neuron_idx,
-                            **{
-                                feature: mutual_information_values[i]
-                                for i, feature in enumerate(df_continuous.columns)
-                            },
-                        }
-                    ]
-                ),
-            ],
+            [mutual_information_df_layer, pd.DataFrame([new_row])],
             ignore_index=True,
         )
 
-        # Save the updated layer data after each neuron
+        # Save the updated layer data to the CSV file
         mutual_information_df_layer.to_csv(layer_file_path, index=False)
 
-    # Save the layer's mutual information to a CSV file
-    if not mutual_information_df_layer.empty:
-        mutual_information_df_layer.to_csv(layer_file_path, index=False)
-
-    # Add the layer to the overall mutual information DataFrame
+    # Append the processed layer to the global DataFrame
     mutual_information_df = pd.concat(
         [mutual_information_df, mutual_information_df_layer], ignore_index=True
     )
 
-    # Save the combined mutual information to a CSV file
+    # Save the combined mutual information to a global CSV file
     mutual_information_df.to_csv(
         f"mutual_information_event{event:09d}.csv", index=False
     )
