@@ -540,6 +540,69 @@ def entropy_discrete(y):
     probabilities = counts / len(y)
     return -np.sum(probabilities * np.log(probabilities))
 
+# Load the data
+csv_dir = Path(".")
+csv_files = list(csv_dir.glob("mutual_information_event000000101_layer*.csv"))
+
+# Read all the csv files and concatenate them
+df_mutual = pd.concat((pd.read_csv(csv_file) for csv_file in csv_files))
+print(df_mutual)
+
+
+# Compute the information coverage dataframe
+df_information_coverage = pd.DataFrame()
+df_information_coverage["layer"] = df_mutual["layer"]
+df_information_coverage["neuron"] = df_mutual["neuron"]
+for feature in df_mutual.columns[2:]:
+    # Compute the mutual information between the feature and itself
+    mutual_information_values = mutual_info_regression(
+        df_continuous[feature].to_numpy().reshape(-1, 1),
+        df_continuous[feature].to_numpy(),
+        random_state=42,
+    )
+
+    df_information_coverage[feature] = df_mutual[feature] / mutual_information_values
+
+# Save the information coverage to a CSV file
+df_information_coverage.to_csv(
+    f"information_coverage_event{event:09d}.csv", index=False
+)
+
+print(df_information_coverage)
+
+# Plot the data for each layer (Y axis: "layer", X axis: "mutual_information")
+def plot_information_coverage(event, df_information_coverage):
+    for feature in df_information_coverage.columns:
+        if feature in ["layer", "neuron"]:
+            continue
+
+        # Do violin plot for each layer
+        plt.violinplot(
+            [
+                df_information_coverage[df_information_coverage["layer"] == layer][
+                    feature
+                ]
+                * 100
+                for layer in df_information_coverage["layer"].unique()
+            ],
+            vert=False,
+            # Set y axis values
+            positions=df_information_coverage["layer"].unique(),
+        )
+        plt.scatter(
+            df_information_coverage[feature] * 100,
+            df_information_coverage["layer"],
+        )
+        plt.xlabel("Information coverage [%]")
+        plt.ylabel("Layer")
+        plt.title(f"Information coverage for {feature}")
+        plt.grid(True)
+        plt.savefig(f"information_coverage_{feature}_event{event:09d}.png")
+        plt.show()
+
+
+plot_information_coverage(event, df_information_coverage)
+
 # Compute mutual information for all neuron outputs in a layer and save them into a CSV file
 mutual_information_df = pd.DataFrame()
 
