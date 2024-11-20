@@ -419,48 +419,45 @@ def match_input_data(truth_particles):
     return df_scaled
 
 
-df = match_input_data(truth_particles)
-df_scaled = df
+input_df = match_input_data(truth_particles)
 
 # Add various coordinate transformations
-df_scaled = add_coordinate_transformations(df_scaled)
-
-df = df_scaled
+input_df = add_coordinate_transformations(input_df)
 
 
 # Map particle_id to [0..N]
 particle_id_map = {
-    particle_id: i for i, particle_id in enumerate(df["particle_id"].unique())
+    particle_id: i for i, particle_id in enumerate(input_df["particle_id"].unique())
 }
-df["particle_id_mapped"] = df["particle_id"].map(particle_id_map)
+input_df["particle_id_mapped"] = input_df["particle_id"].map(particle_id_map)
 
 
-n_hits = df.shape[0]
-# print(df[["eta", "phi"]].to_numpy().reshape(n_hits, 2).shape)
-# print(df[["eta", "phi"]].to_numpy().reshape(n_hits, 2))
+n_hits = input_df.shape[0]
+# print(input_df[["eta", "phi"]].to_numpy().reshape(n_hits, 2).shape)
+# print(input_df[["eta", "phi"]].to_numpy().reshape(n_hits, 2))
 
-# print(mutual_information(df, "eta", "eta"))
-# print(calculate_entropy(df, "eta", "eta"))
-# print(conditional_entropy(df["eta"].to_numpy(), df["eta"].to_numpy()))
+# print(mutual_information(input_df, "eta", "eta"))
+# print(calculate_entropy(input_df, "eta", "eta"))
+# print(conditional_entropy(input_df["eta"].to_numpy(), input_df["eta"].to_numpy()))
 # print(
 #     mutual_info_regression(
-#         df["eta"].to_numpy().reshape(-1, 1),
-#         df["eta"].to_numpy(),
+#         input_df["eta"].to_numpy().reshape(-1, 1),
+#         input_df["eta"].to_numpy(),
 #         random_state=42,
 #     )
 # )
-# print(conditional_entropy(df["phi"].to_numpy(), df["eta"].to_numpy()))
+# print(conditional_entropy(input_df["phi"].to_numpy(), input_df["eta"].to_numpy()))
 # print(
 #     mutual_info_regression(
-#         df["phi"].to_numpy().reshape(-1, 1),
-#         df["eta"].to_numpy(),
+#         input_df["phi"].to_numpy().reshape(-1, 1),
+#         input_df["eta"].to_numpy(),
 #         random_state=42,
 #     )
 # )
 # print(
 #     mutual_info_regression(
-#         df[["eta", "phi"]].to_numpy().reshape(n_hits, 2),
-#         df["eta"].to_numpy(),
+#         input_df[["eta", "phi"]].to_numpy().reshape(n_hits, 2),
+#         input_df["eta"].to_numpy(),
 #         random_state=42,
 #     )
 # )
@@ -508,8 +505,8 @@ neuron_86_output = activations_1[86]
 neuron_44_output = activations_1[44]
 neuron_935_output = activations_4[935]
 
-# for feature in df.columns:
-#     feature_values = df[feature].to_numpy()
+# for feature in input_df.columns:
+#     feature_values = input_df[feature].to_numpy()
 #     # If the feature is not continuous, skip
 #     if not np.issubdtype(feature_values.dtype, np.number):
 #         print(f"Feature {feature} is not continuous")
@@ -520,14 +517,14 @@ neuron_935_output = activations_4[935]
 #     )
 
 # Plot r vs z with the color of the points representing the pt
-plt.scatter(df_scaled["z"], df_scaled["r"], c=np.log10(df["pt"]))
+plt.scatter(input_df["z"], input_df["r"], c=np.log10(input_df["pt"]))
 plt.xlabel("z")
 plt.ylabel("r")
 plt.colorbar()
 # plt.savefig(f"neuron_86_output_event{event:09d}_r_z.png")
 plt.show()
 
-plt.scatter(df_scaled["z"], df_scaled["r"], c=df["particle_id_mapped"])
+plt.scatter(input_df["z"], input_df["r"], c=input_df["particle_id_mapped"])
 plt.xlabel("z")
 plt.ylabel("r")
 plt.colorbar()
@@ -535,7 +532,7 @@ plt.show()
 
 
 # Remove non-continuous features
-df_continuous = df.select_dtypes(include=[np.number])
+df_continuous = input_df.select_dtypes(include=[np.number])
 
 
 def entropy_discrete(y):
@@ -825,35 +822,35 @@ df["eta"] = -np.log(np.tan(df["theta"] / 2))
 
 # Plot neuron 935 output vs x, y, z, r, phi, theta, rho
 # plot_neuron_output_vs_features(
-#     neuron_935_output, df, ["x", "y", "z", "r", "phi", "theta", "rho", "eta"]
+#     neuron_935_output, input_df, ["x", "y", "z", "r", "phi", "theta", "rho", "eta"]
 # )
 
 exit()
 
 # Clustering
-for feature in df.columns:
-    plt.scatter(neuron_935_output, df[feature], c=df["particle_id_mapped"])
+for feature in input_df.columns:
+    plt.scatter(neuron_935_output, input_df[feature], c=input_df["particle_id_mapped"])
     plt.ylabel(feature)
     plt.xlabel("Neuron 935")
     plt.show()
 
 
-plot_scatter_with_color(df, "eta", "pt", neuron_935_output, "eta", "pt")
+plot_scatter_with_color(input_df, "eta", "pt", neuron_935_output, "eta", "pt")
 exit()
 
-plot_scatter_with_color(df, "x", "y", neuron_935_output, "x", "y")
-plot_scatter_with_color(df, "r", "phi", neuron_935_output, "r", "phi")
-plot_scatter_with_color(df, "theta", "rho", neuron_935_output, "theta", "rho")
-plot_scatter_with_color(df, "eta", "phi", neuron_935_output, "eta", "phi")
-plot_scatter_with_color(df, "eta", "r", neuron_935_output, "eta", "r")
+plot_scatter_with_color(input_df, "x", "y", neuron_935_output, "x", "y")
+plot_scatter_with_color(input_df, "r", "phi", neuron_935_output, "r", "phi")
+plot_scatter_with_color(input_df, "theta", "rho", neuron_935_output, "theta", "rho")
+plot_scatter_with_color(input_df, "eta", "phi", neuron_935_output, "eta", "phi")
+plot_scatter_with_color(input_df, "eta", "r", neuron_935_output, "eta", "r")
 
 
 # Plot correlation between neuron 935 output and r
-plot_output_correlation(neuron_935_output, df["r"], "Neuron 935", "r")
-plot_output_correlation(neuron_935_output, df["eta"], "Neuron 935", "eta")
-plot_output_correlation(neuron_935_output, df["rho"], "Neuron 935", "rho")
-plot_output_correlation(neuron_935_output, df["theta"], "Neuron 935", "theta")
-plot_output_correlation(neuron_935_output, df["phi"], "Neuron 935", "phi")
+plot_output_correlation(neuron_935_output, input_df["r"], "Neuron 935", "r")
+plot_output_correlation(neuron_935_output, input_df["eta"], "Neuron 935", "eta")
+plot_output_correlation(neuron_935_output, input_df["rho"], "Neuron 935", "rho")
+plot_output_correlation(neuron_935_output, input_df["theta"], "Neuron 935", "theta")
+plot_output_correlation(neuron_935_output, input_df["phi"], "Neuron 935", "phi")
 
 # Same for neuron 895 in layer 4
 neuron_895_output = activations_4[895]
