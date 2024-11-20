@@ -809,17 +809,6 @@ plot_output_correlation(neuron_86_output, neuron_935_output, "Neuron 86", "Neuro
 # Plot the output of neuron 935 vs the output of neuron 44
 plot_output_correlation(neuron_44_output, neuron_935_output, "Neuron 44", "Neuron 935")
 
-# Cyllindrical coordinates to cartesian
-df["x"] = df["r"] * np.cos(df["phi"])
-df["y"] = df["r"] * np.sin(df["phi"])
-
-# Cyllindrical coordinates to spherical
-df["theta"] = np.arctan2(df["r"], df["z"])
-df["rho"] = np.sqrt(df["r"] ** 2 + df["z"] ** 2)
-
-# Calculate eta
-df["eta"] = -np.log(np.tan(df["theta"] / 2))
-
 # Plot neuron 935 output vs x, y, z, r, phi, theta, rho
 # plot_neuron_output_vs_features(
 #     neuron_935_output, input_df, ["x", "y", "z", "r", "phi", "theta", "rho", "eta"]
