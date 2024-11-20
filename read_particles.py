@@ -417,18 +417,38 @@ else:
         matching_truth_hit = truth_particles[
             ((truth_particles["r"] - df_scaled.loc[hit, "r"]).abs() < 1e-3)
             & ((truth_particles["phi"] - df_scaled.loc[hit, "phi"]).abs() < 1e-6)
-            & ((truth_particles["z"] - df_scaled.loc[hit, "z"]).abs() < 1e-5)
+            & ((truth_particles["z"] - df_scaled.loc[hit, "z"]).abs() < 1e-12)
         ]
+        assert len(matching_truth_hit) >= 1, f"{matching_truth_hit = }"
         # If there is a matching truth hit, assign the truth hit to the hit
         if not matching_truth_hit.empty:
-            # Add particle information to the hit
-            df_scaled.loc[hit, "particle_id"] = matching_truth_hit[
-                "particle_id"
-            ].values[0]
-            for feature in truth_particles.columns:
-                if feature not in df.columns:
-                    df_scaled.loc[hit, feature] = matching_truth_hit[feature].values[0]
+            # Add particle information to the hit for each matching truth hit
+            for matching_truth_hit_index in range(len(matching_truth_hit.index)):
+                if matching_truth_hit_index == 0:
+                    df_scaled.loc[hit, "particle_id"] = matching_truth_hit[
+                        "particle_id"
+                    ].values[0]
+                    for feature in truth_particles.columns:
+                        if feature not in df.columns:
+                            df_scaled.loc[hit, feature] = matching_truth_hit[
+                                feature
+                            ].values[0]
+                else:
+                    new_hit = df_scaled.loc[hit].copy()
+                    new_hit["particle_id"] = matching_truth_hit["particle_id"].values[
+                        matching_truth_hit_index
+                    ]
+                    for feature in truth_particles.columns:
+                        if feature not in df.columns:
+                            new_hit[feature] = matching_truth_hit[feature].values[
+                                matching_truth_hit_index
+                            ]
+                    df_scaled = df_scaled._append(new_hit, ignore_index=True)
         # If there is no matching truth hit, assign -1 to the hit
+        # if len(matching_truth_hit) > 1:
+        #     print(
+        #         f"len(matching_truth_hit): {len(matching_truth_hit)}, hit: {hit}, matching_truth_hit: {matching_truth_hit}"
+        #     )
         assert (
             len(matching_truth_hit) >= 1
         ), f"len(matching_truth_hit): {len(matching_truth_hit)}, hit: {hit}, matching_truth_hit: {matching_truth_hit}"
