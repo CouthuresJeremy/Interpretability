@@ -616,90 +616,96 @@ def plot_information_coverage(event, df_information_coverage):
 plot_information_coverage(event, df_information_coverage)
 
 # Compute mutual information for all neuron outputs in a layer and save them into a CSV file
-mutual_information_df = pd.DataFrame()
+def compute_mutual_information(event, neuron_activations, df_continuous):
+    mutual_information_df = pd.DataFrame()
 
-# Start from the last layer
-reversed_neuron_activations = list(neuron_activations.keys())[::-1]
-for layer_index, layer in enumerate(reversed_neuron_activations):
-    start_time = time.time()
-    layer_index = len(neuron_activations) - layer_index
+    # Start from the last layer
+    reversed_neuron_activations = list(neuron_activations.keys())[::-1]
+    for layer_index, layer in enumerate(reversed_neuron_activations):
+        start_time = time.time()
+        layer_index = len(neuron_activations) - layer_index
 
-    # Get all neuron outputs of the current layer as a 2D array (shape: num_samples x num_neurons)
-    layer_outputs = np.array(
-        neuron_activations[layer]
-    ).T  # Transpose to match mutual_info_regression input format
+        # Get all neuron outputs of the current layer as a 2D array (shape: num_samples x num_neurons)
+        layer_outputs = np.array(
+            neuron_activations[layer]
+        ).T  # Transpose to match mutual_info_regression input format
 
-    print(f"Computing mutual information for Layer {layer_index}")
+        print(f"Computing mutual information for Layer {layer_index}")
 
-    # File path for the current layer's CSV
-    layer_file_path = f"mutual_information_event{event:09d}_layer{layer_index}.csv"
+        # File path for the current layer's CSV
+        layer_file_path = f"mutual_information_event{event:09d}_layer{layer_index}.csv"
 
-    # Initialize or load existing data for the layer
-    if os.path.exists(layer_file_path):
-        mutual_information_df_layer = pd.read_csv(layer_file_path)
-        processed_neurons = mutual_information_df_layer["neuron"].tolist()
-        print(
-            f"Found existing file for Layer {layer_index}. Resuming from Neuron {len(processed_neurons)}"
+        # Initialize or load existing data for the layer
+        if os.path.exists(layer_file_path):
+            mutual_information_df_layer = pd.read_csv(layer_file_path)
+            processed_neurons = mutual_information_df_layer["neuron"].tolist()
+            print(
+                f"Found existing file for Layer {layer_index}. Resuming from Neuron {len(processed_neurons)}"
+            )
+        else:
+            mutual_information_df_layer = pd.DataFrame()
+            processed_neurons = []
+
+        for neuron_idx in range(layer_outputs.shape[1]):
+            if neuron_idx in processed_neurons:
+                continue  # Skip already processed neurons
+
+            print(f"Computing mutual information for Neuron {neuron_idx}")
+
+            mutual_information_values = mutual_info_regression(
+                df_continuous.to_numpy(), layer_outputs[:, neuron_idx], random_state=42
+            )
+
+            # # Use Adjusted Mutual Information
+            # from sklearn.metrics import adjusted_mutual_info_score
+
+            # adjusted_mutual_information_values = []
+            # for i, feature in enumerate(df_continuous.columns):
+            #     adjusted_mutual_information_values.append(
+            #         adjusted_mutual_info_score(
+            #             df_continuous[feature].to_numpy(), layer_outputs[:, neuron_idx]
+            #         )
+            #     )
+
+            # Create a new row for the current neuron
+            new_row = {
+                "layer": layer_index,
+                "neuron": neuron_idx,
+                **{
+                    feature: mutual_information_values[i]
+                    for i, feature in enumerate(df_continuous.columns)
+                },
+            }
+
+            # Append the new row to the existing DataFrame for the layer
+            mutual_information_df_layer = pd.concat(
+                [mutual_information_df_layer, pd.DataFrame([new_row])],
+                ignore_index=True,
+            )
+
+            # Save the updated layer data to the CSV file
+            mutual_information_df_layer.to_csv(layer_file_path, index=False)
+
+        # Append the processed layer to the global DataFrame
+        mutual_information_df = pd.concat(
+            [mutual_information_df, mutual_information_df_layer], ignore_index=True
         )
-    else:
-        mutual_information_df_layer = pd.DataFrame()
-        processed_neurons = []
 
-    for neuron_idx in range(layer_outputs.shape[1]):
-        if neuron_idx in processed_neurons:
-            continue  # Skip already processed neurons
-
-        print(f"Computing mutual information for Neuron {neuron_idx}")
-
-        mutual_information_values = mutual_info_regression(
-            df_continuous.to_numpy(), layer_outputs[:, neuron_idx], random_state=42
+        # Save the combined mutual information to a global CSV file
+        mutual_information_df.to_csv(
+            f"mutual_information_event{event:09d}.csv", index=False
         )
 
-        # # Use Adjusted Mutual Information
-        # from sklearn.metrics import adjusted_mutual_info_score
+        end_time = time.time()
+        print(f"Time taken for Layer {layer_index}: {end_time - start_time} seconds")
 
-        # adjusted_mutual_information_values = []
-        # for i, feature in enumerate(df_continuous.columns):
-        #     adjusted_mutual_information_values.append(
-        #         adjusted_mutual_info_score(
-        #             df_continuous[feature].to_numpy(), layer_outputs[:, neuron_idx]
-        #         )
-        #     )
-
-        # Create a new row for the current neuron
-        new_row = {
-            "layer": layer_index,
-            "neuron": neuron_idx,
-            **{
-                feature: mutual_information_values[i]
-                for i, feature in enumerate(df_continuous.columns)
-            },
-        }
-
-        # Append the new row to the existing DataFrame for the layer
-        mutual_information_df_layer = pd.concat(
-            [mutual_information_df_layer, pd.DataFrame([new_row])],
-            ignore_index=True,
-        )
-
-        # Save the updated layer data to the CSV file
-        mutual_information_df_layer.to_csv(layer_file_path, index=False)
-
-    # Append the processed layer to the global DataFrame
-    mutual_information_df = pd.concat(
-        [mutual_information_df, mutual_information_df_layer], ignore_index=True
-    )
-
-    # Save the combined mutual information to a global CSV file
+    # Final save of the mutual information to a CSV file
     mutual_information_df.to_csv(
         f"mutual_information_event{event:09d}.csv", index=False
     )
 
-    end_time = time.time()
-    print(f"Time taken for Layer {layer_index}: {end_time - start_time} seconds")
 
-# Final save of the mutual information to a CSV file
-mutual_information_df.to_csv(f"mutual_information_event{event:09d}.csv", index=False)
+compute_mutual_information(event, neuron_activations, df_continuous)
 
 # # Print the feature names and their mutual information with neuron 935
 # for i, feature in enumerate(df_continuous.columns):
