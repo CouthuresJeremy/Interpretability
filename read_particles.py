@@ -2,7 +2,11 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
+import time
+import os
 from pathlib import Path
+from sklearn.neighbors import KernelDensity
+from sklearn.feature_selection import mutual_info_regression
 
 event = 101
 
@@ -21,11 +25,6 @@ def mutual_information(df, feature1, feature2):
             joint_prob[i, j] / (marginal_prob1[i] * marginal_prob2[j])
         )
     return mi
-
-
-from sklearn.metrics import mutual_info_score
-
-from sklearn.neighbors import KernelDensity
 
 
 # Function to calculate conditional entropy using kernel density estimation
@@ -428,9 +427,6 @@ particle_id_map = {
 df["particle_id_mapped"] = df["particle_id"].map(particle_id_map)
 
 
-from sklearn.metrics import mutual_info_score
-from sklearn.feature_selection import mutual_info_regression
-
 n_hits = df.shape[0]
 # print(df[["eta", "phi"]].to_numpy().reshape(n_hits, 2).shape)
 # print(df[["eta", "phi"]].to_numpy().reshape(n_hits, 2))
@@ -532,12 +528,6 @@ plt.show()
 
 # Remove non-continuous features
 df_continuous = df.select_dtypes(include=[np.number])
-
-import os
-from sklearn.feature_selection import mutual_info_regression
-import pandas as pd
-import numpy as np
-import time
 
 
 def entropy_discrete(y):
