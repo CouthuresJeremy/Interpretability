@@ -540,33 +540,40 @@ def entropy_discrete(y):
     probabilities = counts / len(y)
     return -np.sum(probabilities * np.log(probabilities))
 
-# Load the data
-csv_dir = Path(".")
-csv_files = list(csv_dir.glob("mutual_information_event000000101_layer*.csv"))
+def compute_information_coverage(event, df_continuous):
+    # Load the data
+    csv_dir = Path(".")
+    csv_files = list(csv_dir.glob("mutual_information_event000000101_layer*.csv"))
 
-# Read all the csv files and concatenate them
-df_mutual = pd.concat((pd.read_csv(csv_file) for csv_file in csv_files))
-print(df_mutual)
+    # Read all the csv files and concatenate them
+    df_mutual = pd.concat((pd.read_csv(csv_file) for csv_file in csv_files))
+    print(df_mutual)
 
+    # Compute the information coverage dataframe
+    df_information_coverage = pd.DataFrame()
+    df_information_coverage["layer"] = df_mutual["layer"]
+    df_information_coverage["neuron"] = df_mutual["neuron"]
+    for feature in df_mutual.columns[2:]:
+        # Compute the mutual information between the feature and itself
+        mutual_information_values = mutual_info_regression(
+            df_continuous[feature].to_numpy().reshape(-1, 1),
+            df_continuous[feature].to_numpy(),
+            random_state=42,
+        )
 
-# Compute the information coverage dataframe
-df_information_coverage = pd.DataFrame()
-df_information_coverage["layer"] = df_mutual["layer"]
-df_information_coverage["neuron"] = df_mutual["neuron"]
-for feature in df_mutual.columns[2:]:
-    # Compute the mutual information between the feature and itself
-    mutual_information_values = mutual_info_regression(
-        df_continuous[feature].to_numpy().reshape(-1, 1),
-        df_continuous[feature].to_numpy(),
-        random_state=42,
+        df_information_coverage[feature] = (
+            df_mutual[feature] / mutual_information_values
+        )
+
+    # Save the information coverage to a CSV file
+    df_information_coverage.to_csv(
+        f"information_coverage_event{event:09d}.csv", index=False
     )
 
-    df_information_coverage[feature] = df_mutual[feature] / mutual_information_values
+    return df_information_coverage
 
-# Save the information coverage to a CSV file
-df_information_coverage.to_csv(
-    f"information_coverage_event{event:09d}.csv", index=False
-)
+
+df_information_coverage = compute_information_coverage(event, df_continuous)
 
 print(df_information_coverage)
 
