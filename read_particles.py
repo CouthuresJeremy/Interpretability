@@ -402,7 +402,7 @@ print(df_scaled.duplicated(subset=["r", "phi", "z"]).sum())
 # Load the file if it exists
 mathed_file = Path("input_data_event000000101_matched.csv")
 if mathed_file.exists():
-    df_scaled = pd.read_csv("input_data_event000000101_matched.csv")
+    df_scaled = pd.read_csv(mathed_file)
 else:
     # Save the matched input data
     df_scaled.to_csv(mathed_file, index=False)
