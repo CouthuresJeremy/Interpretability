@@ -568,6 +568,17 @@ import pandas as pd
 import numpy as np
 import time
 
+
+def entropy_discrete(y):
+    """
+    Compute entropy for a discrete variable Y.
+    :param y: Numpy array of shape (n_samples,), the discrete variable Y
+    :return: Estimated entropy
+    """
+    _, counts = np.unique(y, return_counts=True)
+    probabilities = counts / len(y)
+    return -np.sum(probabilities * np.log(probabilities))
+
 # Compute mutual information for all neuron outputs in a layer and save them into a CSV file
 mutual_information_df = pd.DataFrame()
 
