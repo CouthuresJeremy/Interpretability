@@ -26,7 +26,13 @@ def scale_data(df, scales=[1000, 3.14, 1000]):
 
 
 # Convert r, phi and z to float32 for the matching
-def match_input_data(truth_particles):
+def match_input_data(truth_particles, load_data=True):
+    # Load the file if it exists
+    mathed_file = Path("input_data_event000000101_matched.csv")
+    if load_data and mathed_file.exists():
+        df_scaled = pd.read_csv(mathed_file)
+        return df_scaled
+
     truth_particles_unscaled = truth_particles.copy()
     truth_particles_unscaled["r"] = truth_particles_unscaled["r"] / 1000
     truth_particles_unscaled["phi"] = truth_particles_unscaled["phi"] / 3.14
@@ -89,13 +95,8 @@ def match_input_data(truth_particles):
         ]
     )
 
-    # Load the file if it exists
-    mathed_file = Path("input_data_event000000101_matched.csv")
-    if mathed_file.exists():
-        df_scaled = pd.read_csv(mathed_file)
-    else:
-        # Save the matched input data
-        df_scaled.to_csv(mathed_file, index=False)
+    # Save the matched input data
+    df_scaled.to_csv(mathed_file, index=False)
 
     # Should be equal
     assert (
