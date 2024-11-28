@@ -3,6 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch
 from pathlib import Path
+from load_data import match_input_data, load_csv_data
+from sklearn.neighbors import KernelDensity
 
 event = 101
 
@@ -21,9 +23,6 @@ def mutual_information(df, feature1, feature2):
             joint_prob[i, j] / (marginal_prob1[i] * marginal_prob2[j])
         )
     return mi
-
-
-from sklearn.neighbors import KernelDensity
 
 
 # Function to calculate conditional entropy using kernel density estimation
@@ -74,22 +73,6 @@ def entropy(x):
     return entropy_value
 
 
-# Load Data Function
-def load_csv_data(file_name="input_data_event000000101.csv", directory="csv"):
-    csv_dir = Path(directory)
-    csv_file = csv_dir / file_name
-    df = pd.read_csv(csv_file)
-    return df
-
-
-# Scaling Data Function
-def scale_data(df, scales=[1000, 3.14, 1000]):
-    df_scaled = df.copy()
-    for i, feature in enumerate(df.columns):
-        df_scaled[feature] *= scales[i]
-    return df_scaled
-
-
 # Plotting Distribution Function
 def plot_feature_distributions(df, scales=[]):
     if scales is None or len(scales) == 0:
@@ -102,12 +85,6 @@ def plot_feature_distributions(df, scales=[]):
         plt.hist(df[feature_name] * scales[i], bins=100, alpha=0.5)
         plt.xlabel(feature_name)
         plt.show()
-
-
-# Load Model Function
-def load_model(model_path="model/best--f1=0.313180-epoch=89.ckpt"):
-    model = torch.load(model_path, map_location=torch.device("cpu"))
-    return model["state_dict"]
 
 
 # Neuron Output Calculation Function
@@ -195,20 +172,9 @@ truth_particles["r"] = np.sqrt(truth_particles["x"] ** 2 + truth_particles["y"] 
 truth_particles["phi"] = np.arctan2(truth_particles["y"], truth_particles["x"])
 truth_particles["z"] = truth_particles["z"]
 
+input_df = match_input_data(truth_particles, load_data=True)
 
-# Load the input data
-df = load_csv_data(file_name="input_data_event000000101.csv", directory="csv")
-df.columns = ["r", "phi", "z"]
-
-# Scale the input data
-df_scaled = scale_data(df, scales=[1000, 3.14, 1000])
-
-# Load the file if it exists
-mathed_file = Path("input_data_event000000101_matched.csv")
-if mathed_file.exists():
-    df_scaled = pd.read_csv("input_data_event000000101_matched.csv")
-else:
-    raise ValueError("Matched file does not exist")
+df_scaled = input_df.copy()
 
 # Add various coordinate transformations
 df_scaled = add_coordinate_transformations(df_scaled)
