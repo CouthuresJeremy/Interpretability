@@ -174,24 +174,19 @@ truth_particles["z"] = truth_particles["z"]
 
 input_df = match_input_data(truth_particles, load_data=True)
 
-df_scaled = input_df.copy()
-
 # Add various coordinate transformations
-df_scaled = add_coordinate_transformations(df_scaled)
-
-df = df_scaled
-
+input_df = add_coordinate_transformations(input_df)
 
 # Map particle_id to [0..N]
 particle_id_map = {
-    particle_id: i for i, particle_id in enumerate(df["particle_id"].unique())
+    particle_id: i for i, particle_id in enumerate(input_df["particle_id"].unique())
 }
-df["particle_id_mapped"] = df["particle_id"].map(particle_id_map)
+input_df["particle_id_mapped"] = input_df["particle_id"].map(particle_id_map)
 
 
 from sklearn.feature_selection import mutual_info_regression
 
-n_hits = df.shape[0]
+n_hits = input_df.shape[0]
 
 # Read activations
 event = 100
@@ -229,8 +224,8 @@ neuron_86_output = activations_1[86]
 neuron_44_output = activations_1[44]
 neuron_935_output = activations_4[935]
 
-# for feature in df.columns:
-#     feature_values = df[feature].to_numpy()
+# for feature in input_df.columns:
+#     feature_values = input_df[feature].to_numpy()
 #     # If the feature is not continuous, skip
 #     if not np.issubdtype(feature_values.dtype, np.number):
 #         print(f"Feature {feature} is not continuous")
@@ -242,7 +237,7 @@ neuron_935_output = activations_4[935]
 
 
 # Remove non-continuous features
-df_continuous = df.select_dtypes(include=[np.number])
+df_continuous = input_df.select_dtypes(include=[np.number])
 
 import os
 from sklearn.feature_selection import mutual_info_regression
@@ -421,6 +416,7 @@ def conditional_entropy(data_y, data_x, y_is_discrete=False, bandwidth=0.5):
     # Conditional entropy H(Y | X)
     h_y_given_x = joint_entropy_yx - h_x
     return h_y_given_x
+
 
 def entropy_histogram(data, bins=10):
     """
@@ -1102,7 +1098,7 @@ print(f"Joint mutual information values saved to '{output_filename}'")
 exit()
 
 # # Plot r vs z with the color of the points representing the output of neuron 86
-# plt.scatter(df_scaled["z"], df_scaled["r"], c=neuron_86_output)
+# plt.scatter(input_df["z"], input_df["r"], c=neuron_86_output)
 # plt.xlabel("z")
 # plt.ylabel("r")
 # plt.colorbar()
@@ -1110,7 +1106,7 @@ exit()
 # plt.show()
 
 # # Plot isocurves of the output of neuron 86 with a lot of points
-# plt.tricontourf(df_scaled["z"], df_scaled["r"], neuron_86_output, levels=20)
+# plt.tricontourf(input_df["z"], input_df["r"], neuron_86_output, levels=20)
 # plt.xlabel("z")
 # plt.ylabel("r")
 # plt.colorbar()
@@ -1129,7 +1125,7 @@ exit()
 # plt.show()
 
 # # Plot r vs z with the color of the points representing the output of neuron 44
-# plt.scatter(df_scaled["z"], df_scaled["r"], c=neuron_44_output)
+# plt.scatter(input_df["z"], input_df["r"], c=neuron_44_output)
 # plt.xlabel("z")
 # plt.ylabel("r")
 # plt.colorbar()
@@ -1137,7 +1133,7 @@ exit()
 # plt.show()
 
 # # Plot isocurves of the output of neuron 44 with a lot of points
-# plt.tricontourf(df_scaled["z"], df_scaled["r"], neuron_44_output, levels=20)
+# plt.tricontourf(input_df["z"], input_df["r"], neuron_44_output, levels=20)
 # plt.xlabel("z")
 # plt.ylabel("r")
 # plt.colorbar()
@@ -1164,7 +1160,7 @@ exit()
 
 
 # # Plot r vs z with the color of the points representing the output of neuron 935
-# plt.scatter(df_scaled["z"], df_scaled["r"], c=neuron_935_output)
+# plt.scatter(input_df["z"], input_df["r"], c=neuron_935_output)
 # plt.xlabel("z")
 # plt.ylabel("r")
 # plt.colorbar()
@@ -1172,7 +1168,7 @@ exit()
 # plt.show()
 
 # # Plot isocurves of the output of neuron 935 with a lot of points
-# plt.tricontourf(df_scaled["z"], df_scaled["r"], neuron_935_output, levels=20)
+# plt.tricontourf(input_df["z"], input_df["r"], neuron_935_output, levels=20)
 # plt.xlabel("z")
 # plt.ylabel("r")
 # plt.colorbar()
@@ -1180,8 +1176,8 @@ exit()
 # plt.show()
 
 # # Plot isocurves of the output of neuron 935 with a lot of points
-# plt.tricontourf(df_scaled["z"], df_scaled["r"], neuron_935_output, levels=20)
-# plt.scatter(df_scaled["z"], df_scaled["r"], c=neuron_935_output)
+# plt.tricontourf(input_df["z"], input_df["r"], neuron_935_output, levels=20)
+# plt.scatter(input_df["z"], input_df["r"], c=neuron_935_output)
 # plt.xlabel("z")
 # plt.ylabel("r")
 # plt.colorbar()
@@ -1193,20 +1189,9 @@ exit()
 # Plot the output of neuron 935 vs the output of neuron 44
 # plot_output_correlation(neuron_44_output, neuron_935_output, "Neuron 44", "Neuron 935")
 
-# Cyllindrical coordinates to cartesian
-df["x"] = df["r"] * np.cos(df["phi"])
-df["y"] = df["r"] * np.sin(df["phi"])
-
-# Cyllindrical coordinates to spherical
-df["theta"] = np.arctan2(df["r"], df["z"])
-df["rho"] = np.sqrt(df["r"] ** 2 + df["z"] ** 2)
-
-# Calculate eta
-df["eta"] = -np.log(np.tan(df["theta"] / 2))
-
 # Plot neuron 935 output vs x, y, z, r, phi, theta, rho
 # plot_neuron_output_vs_features(
-#     neuron_935_output, df, ["x", "y", "z", "r", "phi", "theta", "rho", "eta"]
+#     neuron_935_output, input_df, ["x", "y", "z", "r", "phi", "theta", "rho", "eta"]
 # )
 
 
@@ -1216,8 +1201,8 @@ df["eta"] = -np.log(np.tan(df["theta"] / 2))
 #     activations = neuron_activations[keys[last_layer - 1]][neuron_idx]
 #     print(activations.shape)
 #     # Clustering
-#     for feature in df.columns:
-#         plt.scatter(activations, df[feature], c=df["particle_id_mapped"])
+#     for feature in input_df.columns:
+#         plt.scatter(activations, input_df[feature], c=input_df["particle_id_mapped"])
 #         plt.ylabel(feature)
 #         plt.xlabel(f"Neuron {neuron_idx}")
 #         plt.title(f"Neuron {neuron_idx} vs {feature}")
@@ -1226,29 +1211,29 @@ df["eta"] = -np.log(np.tan(df["theta"] / 2))
 # exit()
 
 # Clustering
-# for feature in df.columns:
-#     plt.scatter(neuron_935_output, df[feature], c=df["particle_id_mapped"])
+# for feature in input_df.columns:
+#     plt.scatter(neuron_935_output, input_df[feature], c=input_df["particle_id_mapped"])
 #     plt.ylabel(feature)
 #     plt.xlabel("Neuron 935")
 #     plt.show()
 
 
-# plot_scatter_with_color(df, "eta", "pt", neuron_935_output, "eta", "pt")
+# plot_scatter_with_color(input_df, "eta", "pt", neuron_935_output, "eta", "pt")
 # exit()
 
-# plot_scatter_with_color(df, "x", "y", neuron_935_output, "x", "y")
-# plot_scatter_with_color(df, "r", "phi", neuron_935_output, "r", "phi")
-# plot_scatter_with_color(df, "theta", "rho", neuron_935_output, "theta", "rho")
-# plot_scatter_with_color(df, "eta", "phi", neuron_935_output, "eta", "phi")
-# plot_scatter_with_color(df, "eta", "r", neuron_935_output, "eta", "r")
+# plot_scatter_with_color(input_df, "x", "y", neuron_935_output, "x", "y")
+# plot_scatter_with_color(input_df, "r", "phi", neuron_935_output, "r", "phi")
+# plot_scatter_with_color(input_df, "theta", "rho", neuron_935_output, "theta", "rho")
+# plot_scatter_with_color(input_df, "eta", "phi", neuron_935_output, "eta", "phi")
+# plot_scatter_with_color(input_df, "eta", "r", neuron_935_output, "eta", "r")
 
 
 # # Plot correlation between neuron 935 output and r
-# plot_output_correlation(neuron_935_output, df["r"], "Neuron 935", "r")
-# plot_output_correlation(neuron_935_output, df["eta"], "Neuron 935", "eta")
-# plot_output_correlation(neuron_935_output, df["rho"], "Neuron 935", "rho")
-# plot_output_correlation(neuron_935_output, df["theta"], "Neuron 935", "theta")
-# plot_output_correlation(neuron_935_output, df["phi"], "Neuron 935", "phi")
+# plot_output_correlation(neuron_935_output, input_df["r"], "Neuron 935", "r")
+# plot_output_correlation(neuron_935_output, input_df["eta"], "Neuron 935", "eta")
+# plot_output_correlation(neuron_935_output, input_df["rho"], "Neuron 935", "rho")
+# plot_output_correlation(neuron_935_output, input_df["theta"], "Neuron 935", "theta")
+# plot_output_correlation(neuron_935_output, input_df["phi"], "Neuron 935", "phi")
 
 # # Same for neuron 895 in layer 4
 # neuron_895_output = activations_4[895]
@@ -1265,7 +1250,7 @@ df["eta"] = -np.log(np.tan(df["theta"] / 2))
 # plt.show()
 
 # # Plot r vs z with the color of the points representing the output of neuron 895
-# plt.scatter(df_scaled["z"], df_scaled["r"], c=neuron_895_output)
+# plt.scatter(input_df["z"], input_df["r"], c=neuron_895_output)
 # plt.xlabel("z")
 # plt.ylabel("r")
 # plt.colorbar()
@@ -1273,7 +1258,7 @@ df["eta"] = -np.log(np.tan(df["theta"] / 2))
 # plt.show()
 
 # # Plot isocurves of the output of neuron 895 with a lot of points
-# plt.tricontourf(df_scaled["z"], df_scaled["r"], neuron_895_output, levels=20)
+# plt.tricontourf(input_df["z"], input_df["r"], neuron_895_output, levels=20)
 # plt.xlabel("z")
 # plt.ylabel("r")
 # plt.colorbar()
@@ -1307,7 +1292,7 @@ layer_name = keys[layer - 1]
 #     neuron_output = activations_3.T @ neuron_weights.T + neuron_biases
 
 #     # Plot isocurves of the output of neuron i with a lot of points
-#     plt.tricontourf(df_scaled["z"], df_scaled["r"], neuron_output, levels=20)
+#     plt.tricontourf(input_df["z"], input_df["r"], neuron_output, levels=20)
 #     plt.xlabel("z")
 #     plt.ylabel("r")
 #     plt.colorbar()
@@ -1331,17 +1316,17 @@ layer_name = keys[layer - 1]
 #     fig, axs = plt.subplots(1, 3, figsize=(15, 5))
 
 #     # Plot isocurves of the output of neuron i with a lot of points
-#     axs[0].tricontourf(df_scaled["z"], df_scaled["r"], neuron_output, levels=20)
+#     axs[0].tricontourf(input_df["z"], input_df["r"], neuron_output, levels=20)
 #     axs[0].set_xlabel("z")
 #     axs[0].set_ylabel("r")
 #     axs[0].set_title(f"Layer {layer} Neuron {i} Output Isocurves")
 
-#     axs[1].tricontourf(df_scaled["r"], df_scaled["phi"], neuron_output, levels=20)
+#     axs[1].tricontourf(input_df["r"], input_df["phi"], neuron_output, levels=20)
 #     axs[1].set_xlabel("r")
 #     axs[1].set_ylabel("phi")
 #     axs[1].set_title(f"Layer {layer} Neuron {i} Output Isocurves")
 
-#     axs[2].tricontourf(df_scaled["z"], df_scaled["phi"], neuron_output, levels=20)
+#     axs[2].tricontourf(input_df["z"], input_df["phi"], neuron_output, levels=20)
 #     axs[2].set_xlabel("z")
 #     axs[2].set_ylabel("phi")
 #     axs[2].set_title(f"Layer {layer} Neuron {i} Output Isocurves")
@@ -1366,17 +1351,17 @@ layer_name = keys[layer - 1]
 #     fig, axs = plt.subplots(1, 3, figsize=(15, 5))
 
 #     # Plot isocurves of the output of neuron i with a lot of points
-#     axs[0].scatter(df_scaled["z"], df_scaled["r"], c=neuron_output)
+#     axs[0].scatter(input_df["z"], input_df["r"], c=neuron_output)
 #     axs[0].set_xlabel("z")
 #     axs[0].set_ylabel("r")
 #     axs[0].set_title(f"Layer {layer} Neuron {i} Output")
 
-#     axs[1].scatter(df_scaled["r"], df_scaled["phi"], c=neuron_output)
+#     axs[1].scatter(input_df["r"], input_df["phi"], c=neuron_output)
 #     axs[1].set_xlabel("r")
 #     axs[1].set_ylabel("phi")
 #     axs[1].set_title(f"Layer {layer} Neuron {i} Output")
 
-#     axs[2].scatter(df_scaled["z"], df_scaled["phi"], c=neuron_output)
+#     axs[2].scatter(input_df["z"], input_df["phi"], c=neuron_output)
 #     axs[2].set_xlabel("z")
 #     axs[2].set_ylabel("phi")
 #     axs[2].set_title(f"Layer {layer} Neuron {i} Output")
@@ -1430,24 +1415,24 @@ for i in range(len(activations)):
     fig, axs = plt.subplots(1, 4, figsize=(22, 5))
 
     # Plot isocurves of the output of neuron i with a lot of points
-    axs[0].scatter(df_scaled["z"], df_scaled["r"], c=neuron_output)
+    axs[0].scatter(input_df["z"], input_df["r"], c=neuron_output)
     axs[0].set_xlabel("z")
     axs[0].set_ylabel("r")
     axs[0].set_title(f"Layer {layer} Neuron {i} Output")
 
-    axs[1].scatter(df_scaled["x"], df_scaled["y"], c=neuron_output)
+    axs[1].scatter(input_df["x"], input_df["y"], c=neuron_output)
     axs[1].set_xlabel("x")
     axs[1].set_ylabel("y")
     axs[1].set_title(f"Layer {layer} Neuron {i} Output")
     # Make the aspect ratio equal
     axs[1].set_aspect("equal")
 
-    axs[2].scatter(df_scaled["r"], df_scaled["phi"], c=neuron_output)
+    axs[2].scatter(input_df["r"], input_df["phi"], c=neuron_output)
     axs[2].set_xlabel("r")
     axs[2].set_ylabel("phi")
     axs[2].set_title(f"Layer {layer} Neuron {i} Output")
 
-    axs[3].scatter(df_scaled["z"], df_scaled["phi"], c=neuron_output)
+    axs[3].scatter(input_df["z"], input_df["phi"], c=neuron_output)
     axs[3].set_xlabel("z")
     axs[3].set_ylabel("phi")
     axs[3].set_title(f"Layer {layer} Neuron {i} Output")
@@ -1471,22 +1456,22 @@ for i in range(len(activations)):
     fig, axs = plt.subplots(1, 4, figsize=(22, 5))
 
     # Plot isocurves of the output of neuron i with a lot of points
-    axs[0].tricontourf(df_scaled["z"], df_scaled["r"], neuron_output, levels=20)
+    axs[0].tricontourf(input_df["z"], input_df["r"], neuron_output, levels=20)
     axs[0].set_xlabel("z")
     axs[0].set_ylabel("r")
     axs[0].set_title(f"Layer {layer} Neuron {i} Output Isocurves")
 
-    axs[1].tricontourf(df_scaled["x"], df_scaled["y"], neuron_output, levels=20)
+    axs[1].tricontourf(input_df["x"], input_df["y"], neuron_output, levels=20)
     axs[1].set_xlabel("x")
     axs[1].set_ylabel("y")
     axs[1].set_title(f"Layer {layer} Neuron {i} Output Isocurves")
 
-    axs[2].tricontourf(df_scaled["r"], df_scaled["phi"], neuron_output, levels=20)
+    axs[2].tricontourf(input_df["r"], input_df["phi"], neuron_output, levels=20)
     axs[2].set_xlabel("r")
     axs[2].set_ylabel("phi")
     axs[2].set_title(f"Layer {layer} Neuron {i} Output Isocurves")
 
-    axs[3].tricontourf(df_scaled["z"], df_scaled["phi"], neuron_output, levels=20)
+    axs[3].tricontourf(input_df["z"], input_df["phi"], neuron_output, levels=20)
     axs[3].set_xlabel("z")
     axs[3].set_ylabel("phi")
     axs[3].set_title(f"Layer {layer} Neuron {i} Output Isocurves")
@@ -1510,22 +1495,22 @@ for i in range(len(activations)):
     fig, axs = plt.subplots(1, 4, figsize=(22, 5))
 
     # Plot isocurves of the output of neuron i with a lot of points
-    axs[0].tricontourf(df_scaled["z"], df_scaled["r"], neuron_output, levels=20)
+    axs[0].tricontourf(input_df["z"], input_df["r"], neuron_output, levels=20)
     axs[0].set_xlabel("z")
     axs[0].set_ylabel("r")
     axs[0].set_title(f"Layer {layer} Neuron {i} Output Isocurves")
 
-    axs[1].tricontourf(df_scaled["x"], df_scaled["y"], neuron_output, levels=20)
+    axs[1].tricontourf(input_df["x"], input_df["y"], neuron_output, levels=20)
     axs[1].set_xlabel("x")
     axs[1].set_ylabel("y")
     axs[1].set_title(f"Layer {layer} Neuron {i} Output Isocurves")
 
-    axs[2].tricontourf(df_scaled["eta"], df_scaled["rho"], neuron_output, levels=20)
+    axs[2].tricontourf(input_df["eta"], input_df["rho"], neuron_output, levels=20)
     axs[2].set_xlabel("eta")
     axs[2].set_ylabel("rho")
     axs[2].set_title(f"Layer {layer} Neuron {i} Output Isocurves")
 
-    axs[3].tricontourf(df_scaled["eta"], df_scaled["z"], neuron_output, levels=20)
+    axs[3].tricontourf(input_df["eta"], input_df["z"], neuron_output, levels=20)
     axs[3].set_xlabel("eta")
     axs[3].set_ylabel("z")
     axs[3].set_title(f"Layer {layer} Neuron {i} Output Isocurves")
