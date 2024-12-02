@@ -475,7 +475,7 @@ def entropy_kde(data, bandwidth=0.5, verbose=False):
             voronoi_density_samples
         )
 
-    # Seems to be wrong to add the log of the density volumes
+    # Seems to be wrong to add the log of the density volumes -> infinite entropy offset (see https://xuk.ai/blog/estimate-entropy-wrong.html)
     # log_density_samples = log_density_samples + np.log(density_volumes_samples)
 
     # Verify the sum of probabilities
@@ -486,6 +486,7 @@ def entropy_kde(data, bandwidth=0.5, verbose=False):
                 f"Sample density sum voronoi: {np.sum(np.exp(log_density_samples_voronoi))}"
             )
 
+    # Justified here: https://xuk.ai/blog/estimate-entropy-wrong.html
     # Compute entropy as the negative mean log-density
     entropy = -np.sum(np.exp(log_density) * log_density * volumes)
 
