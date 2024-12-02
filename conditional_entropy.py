@@ -543,10 +543,10 @@ def conditional_entropy(data_y, data_x, y_is_discrete=False, bandwidth=0.5, bins
             mask = (data_y == y_val).flatten()
             sub_data_x = data_x[mask]
 
+            p_y = count / total_samples
+
             if len(sub_data_x) > 1:
-                joint_entropy_yx += (count / total_samples) * entropy_kde(
-                    sub_data_x, bandwidth
-                )
+                joint_entropy_yx += p_y * entropy_kde(sub_data_x, bandwidth)
 
         joint_entropy_yx += entropy_discrete(data_y)
 
