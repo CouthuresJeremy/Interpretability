@@ -5,6 +5,7 @@ import torch
 from pathlib import Path
 from load_data import match_input_data, load_csv_data
 from sklearn.neighbors import KernelDensity
+from voronoi import hypersphere_approximation, voronoi_volumes
 
 event = 101
 
@@ -357,25 +358,168 @@ def entropy_discrete(y):
     return scipy_entropy(probabilities)
 
 
-def entropy_kde(data, bandwidth=0.5):
+def entropy_kde(data, bandwidth=0.5, verbose=False):
     """
     Estimate entropy for continuous variables using Kernel Density Estimation (KDE).
     :param data: Numpy array of shape (n_samples, n_features)
     :param bandwidth: Bandwidth for KDE
     :return: Estimated entropy
     """
+    # Handle empty data
+    if len(data) == 0:
+        return 0
+
+    data = data.values if isinstance(data, pd.DataFrame) else data
+
+    if len(data.shape) == 1:
+        data = data.reshape(-1, 1)
+
+    verbose = data.shape[1] <= 2
+    verbose = data.shape[1] == 2
+    verbose = False
+    # verbose = True
+
+    use_voronoi_densisty = data.shape[1] == 2
+    use_voronoi_densisty = False
+
     kde = KernelDensity(kernel="gaussian", bandwidth=bandwidth)
     kde.fit(data)
 
+    # Remove duplicate samples
+    data = np.unique(data, axis=0)
+
+    if data.shape[0] <= 1:
+        return 0
+
+    # Uniform samples for the same range as the data
+    if verbose:
+        print(data.shape)
+        print(np.min(data, axis=0).shape)
+    samples = np.random.uniform(
+        low=np.min(data, axis=0),
+        high=np.max(data, axis=0),
+        # size=(1000000, data.shape[1]),
+        # size=(100000, data.shape[1]),
+        # size=(10000, data.shape[1]),
+        size=(300, data.shape[1]),
+        # size=(100, data.shape[1]),
+    )
+
     # Estimate log density
     log_density = kde.score_samples(data)
+    log_density_samples = kde.score_samples(samples)
+
+    # Verify the sum of probabilities
+    if verbose:
+        print(f"Density sum: {np.sum(np.exp(log_density))}")
+        print(f"Sample density sum: {np.sum(np.exp(log_density_samples))}")
+        # print(help(kde.tree_))
 
     # Safeguard: Avoid numerical issues by ensuring log densities are valid
     log_density = np.clip(log_density, -1e10, np.log(np.finfo(float).max))
 
+    ## Compute density volumes
+    # Define bounding box as min/max of data in every dimension
+    bounding_box = np.array([np.min(data, axis=0), np.max(data, axis=0)])
+    assert bounding_box.shape == (2, data.shape[1]), f"{bounding_box.shape = }"
+
+    # Compute the volumes of the bounding box
+    box_volume = np.prod(bounding_box[1] - bounding_box[0])
+
+    if verbose:
+        print(f"BBox shape: {bounding_box.shape}")
+        print(f"Data shape: {data.shape}")
+
+        print(f"BBox: {bounding_box}")
+
+    # Approximate the Voronoi volumes using hyperspheres
+    volumes = hypersphere_approximation(data, bounding_box, norm=False)
+
+    if use_voronoi_densisty:
+        voronoi_density = voronoi_volumes(data, bounding_box=bounding_box)
+
+    assert volumes.shape == (len(data),), f"{volumes.shape = }"
+
+    if verbose:
+        print(f"Volumes: {volumes.shape}")
+        if volumes.shape[0] <= 10:
+            print(volumes)
+        print(f"Volumes sum: {np.sum(volumes) / box_volume}")
+        if use_voronoi_densisty:
+            print(f"Voronoi Volumes sum: {np.sum(voronoi_density)}")
+
+    density_volumes = volumes / np.sum(volumes)
+
+    if use_voronoi_densisty:
+        log_density_voronoi = log_density + np.log(voronoi_density)
+    log_density = log_density + np.log(density_volumes)
+
+    # Verify the sum of probabilities
+    if verbose:
+        print(f"Density sum: {np.sum(np.exp(log_density))}")
+        if use_voronoi_densisty:
+            print(f"Voronoi Density sum: {np.sum(np.exp(log_density_voronoi))}")
+
+    volumes_samples = hypersphere_approximation(samples, bounding_box, norm=False)
+
+    if use_voronoi_densisty:
+        voronoi_density_samples = voronoi_volumes(samples, bounding_box=bounding_box)
+
+    # Print volumes sum
+    if verbose:
+        print(f"Volumes sum samples: {np.sum(volumes_samples) / box_volume}")
+        if use_voronoi_densisty:
+            print(f"Volumes sum samples Voronoi: {np.sum(voronoi_density_samples)}")
+
+    density_volumes_samples = volumes_samples / np.sum(volumes_samples)
+
+    if use_voronoi_densisty:
+        log_density_samples_voronoi = log_density_samples + np.log(
+            voronoi_density_samples
+        )
+
+    # Seems to be wrong to add the log of the density volumes
+    # log_density_samples = log_density_samples + np.log(density_volumes_samples)
+
+    # Verify the sum of probabilities
+    if verbose:
+        print(f"Sample density sum: {np.sum(np.exp(log_density_samples))}")
+        if use_voronoi_densisty:
+            print(
+                f"Sample density sum voronoi: {np.sum(np.exp(log_density_samples_voronoi))}"
+            )
+
     # Compute entropy as the negative mean log-density
-    entropy = -np.mean(log_density)
-    return entropy
+    # entropy = -np.mean(log_density)
+    # entropy = -np.sum(np.exp(log_density) * log_density)
+    entropy = -np.sum(np.exp(log_density) * log_density * volumes)
+
+    # Compute entropy as the negative mean log-density
+    # sample_entropy = -np.mean(log_density_samples)
+    # sample_entropy = -np.sum(np.exp(log_density_samples) * log_density_samples)
+    sample_entropy = -np.sum(
+        np.exp(log_density_samples) * log_density_samples * volumes_samples
+    )
+    if verbose:
+        print(f"Data entropy: {entropy}, Sample entropy: {sample_entropy}")
+        if use_voronoi_densisty:
+            entropy_voronoi = -np.sum(
+                np.exp(log_density_voronoi) * log_density_voronoi * voronoi_density
+            )
+            entropy_voronoi_samples = -np.sum(
+                np.exp(log_density_samples_voronoi)
+                * log_density_samples_voronoi
+                * voronoi_density_samples
+            )
+            print(
+                f"Voronoi: Data entropy: {entropy_voronoi}, Sample entropy: {entropy_voronoi_samples}"
+            )
+
+    # Ensure entropy is non-negative # Ugly fix
+    entropy = max(entropy, 0)
+
+    return sample_entropy
+    # return entropy
 
 
 def conditional_entropy(data_y, data_x, y_is_discrete=False, bandwidth=0.5):

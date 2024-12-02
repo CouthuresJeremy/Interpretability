@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.spatial import ConvexHull, cKDTree
+from scipy.spatial import Voronoi
 from scipy.special import gamma
 from shapely.geometry import LineString, Polygon
 
@@ -12,7 +13,10 @@ def hypersphere_approximation(points, bounding_box, norm=True):
     :return: List of approximate Voronoi cell volumes
     """
     dimensions = points.shape[1]
-    kdtree = cKDTree(points)
+    # Consider only unique points
+    unique_points = np.unique(points, axis=0)
+
+    kdtree = cKDTree(unique_points)
     volumes = []
 
     for point in points:
@@ -26,21 +30,35 @@ def hypersphere_approximation(points, bounding_box, norm=True):
 
         # Clip the volume to the bounding box if necessary
         box_volume = np.prod(bounding_box[1] - bounding_box[0])
+        if len(points) == 1:
+            hypersphere_volume = 1
+            box_volume = 1
         volumes.append(min(hypersphere_volume, box_volume))
 
     if norm:
         volumes = volumes / np.sum(volumes)
 
+    volumes = np.array(volumes)
+
     return volumes
 
 
-def voronoi_volumes(vor, bounding_box):
+def voronoi_volumes(points, bounding_box):
     """
     Calculate the volume of clipped Voronoi cells.
     :param vor: The Voronoi object containing the regions and vertices
     :param bounding_box: The bounding box to clip the regions to
     :return: List of volumes for each Voronoi cell
     """
+
+    # Normalize the points
+    points = points - bounding_box[0]
+    bounding_box = bounding_box - bounding_box[0]
+    points = points / bounding_box[1]
+    bounding_box = bounding_box / bounding_box[1]
+    print(bounding_box)
+
+    vor = Voronoi(points)
     # clipped_regions = clip_infinite_regions(vor, bounding_box)
     clipped_regions = clip_regions(vor, bounding_box)
     # print(clipped_regions)
