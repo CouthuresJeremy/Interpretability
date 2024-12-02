@@ -515,16 +515,24 @@ def entropy_kde(data, bandwidth=0.5, verbose=False):
     # return entropy
 
 
-def conditional_entropy(data_y, data_x, y_is_discrete=False, bandwidth=0.5):
+def conditional_entropy(data_y, data_x, y_is_discrete=False, bandwidth=0.5, bins=None):
     """
     Estimate conditional entropy H(Y | X) for mixed discrete-continuous data.
     :param data_y: Numpy array of shape (n_samples, 1), the target variable Y
     :param data_x: Numpy array of shape (n_samples, n_features), the conditioning variables X
     :param y_is_discrete: Whether Y is discrete (True) or continuous (False)
     :param bandwidth: Bandwidth for KDE
+    :param bins: Bins for discretization
     :return: Estimated conditional entropy H(Y | X)
     """
-    if y_is_discrete:
+    if y_is_discrete or bins is not None:
+        if bins is not None:
+            if isinstance(bins, int):
+                bins = np.linspace(data_y.min(), data_y.max(), bins)
+
+            # Discretize Y: Conditional entropy H(Y | X)
+            data_y = np.digitize(data_y, bins)
+
         # Compute joint entropy H(Y, X) for discrete-continuous
         joint_entropy_yx = 0
         unique_y, counts_y = np.unique(data_y, return_counts=True, axis=0)
