@@ -494,8 +494,35 @@ def entropy_kde(data, bandwidth=0.5, verbose=False):
     sample_entropy = -np.sum(
         np.exp(log_density_samples) * log_density_samples * volumes_samples
     )
+
+        print(
+            f"Data entropy: {entropy}, Sample entropy: {sample_entropy}, Sample entropy LDDP: {sample_entropy_lddp}"
+        )
+    sample_entropy_lddp = -np.sum(
+        np.exp(log_density_samples) * (log_density_samples + np.log(volumes_samples))
+    )
+    # sample_entropy_lddp = -np.sum(np.exp(log_density_samples) * log_density_samples)
+
+    # Compare with the KL divergence
+    print(f"len samples: {len(samples)}")
+    kl_divergence = np.sum(
+        np.exp(log_density_samples)
+        * (np.log(np.exp(log_density_samples) / (1 / len(samples))))
+    )
+    print(f"KL Divergence 1: {kl_divergence}")
+    kl_divergence = np.sum(
+        np.exp(log_density_samples)
+        * (np.log(np.exp(log_density_samples) / density_volumes_samples))
+    )
+    print(f"KL Divergence: {kl_divergence}")
+    print(f"LLDP: {sample_entropy_lddp}")
+
+    print(f"Log N: {np.log(len(samples))}")
+
     if verbose:
-        print(f"Data entropy: {entropy}, Sample entropy: {sample_entropy}")
+        print(
+            f"Data entropy: {entropy}, Sample entropy: {sample_entropy}, Sample entropy LDDP: {sample_entropy_lddp}"
+        )
         if use_voronoi_densisty:
             entropy_voronoi = -np.sum(
                 np.exp(log_density_voronoi) * log_density_voronoi * voronoi_density
