@@ -487,13 +487,9 @@ def entropy_kde(data, bandwidth=0.5, verbose=False):
             )
 
     # Compute entropy as the negative mean log-density
-    # entropy = -np.mean(log_density)
-    # entropy = -np.sum(np.exp(log_density) * log_density)
     entropy = -np.sum(np.exp(log_density) * log_density * volumes)
 
     # Compute entropy as the negative mean log-density
-    # sample_entropy = -np.mean(log_density_samples)
-    # sample_entropy = -np.sum(np.exp(log_density_samples) * log_density_samples)
     sample_entropy = -np.sum(
         np.exp(log_density_samples) * log_density_samples * volumes_samples
     )
