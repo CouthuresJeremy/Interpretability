@@ -197,9 +197,6 @@ activations = torch.load(
 )
 # print(activations)
 
-for key in activations:
-    print(key, activations[key].shape)
-
 keys = list(activations)
 # print(keys)
 layer_1_name = keys[0]
