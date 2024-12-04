@@ -656,29 +656,28 @@ def conditional_entropy_histogram(data_y, data_x, y_is_discrete=False, bins=2):
     if y_is_discrete:
         print(f"Bins: {[min(np.unique(data_y).size, 50)] + [bins] * data_x.shape[1]}")
         # Compute joint entropy H(Y, X)
-        joint_hist, edges = np.histogramdd(
-            np.hstack((data_y, data_x)),
+        data_yx = np.hstack((data_y, data_x))
+        joint_entropy_yx = entropy_histogram(
+            data_yx,
             bins=[min(np.unique(data_y).size, 50)] + [bins] * data_x.shape[1],
-            density=True,
-        )
-        joint_probabilities = joint_hist / np.sum(joint_hist)
-        joint_entropy_yx = -np.sum(
-            joint_probabilities[joint_probabilities > 0]
-            * np.log(joint_probabilities[joint_probabilities > 0])
         )
 
         # Marginal entropy H(X)
-        hist_x, _ = np.histogramdd(data_x, bins=bins, density=True)
-        probabilities_x = hist_x / np.sum(hist_x)
-        entropy_x = -np.sum(
-            probabilities_x[probabilities_x > 0]
-            * np.log(probabilities_x[probabilities_x > 0])
-        )
+        entropy_x = entropy_histogram(data_x, bins=bins)
 
         # Marginal entropy H(Y)
-        unique, counts = np.unique(data_y, return_counts=True)
-        probabilities_y = counts / len(data_y)
-        entropy_y = -np.sum(probabilities_y * np.log(probabilities_y))
+        entropy_y = entropy_discrete(data_y)
+
+        assert joint_entropy_yx >= 0, f"{joint_entropy_yx = }"
+        assert entropy_x >= 0, f"{entropy_x = }"
+        assert entropy_y >= 0, f"{entropy_y = }"
+
+        assert joint_entropy_yx >= entropy_x, f"{joint_entropy_yx = }, {entropy_x = }"
+        # assert joint_entropy_yx >= entropy_y, f"{joint_entropy_yx = }, {entropy_y = }"
+
+        print(
+            f"Joint entropy: {joint_entropy_yx}, Entropy X: {entropy_x}, Entropy Y: {entropy_y}"
+        )
 
         # Conditional entropy
         return max(joint_entropy_yx - entropy_x, 0)
@@ -688,8 +687,24 @@ def conditional_entropy_histogram(data_y, data_x, y_is_discrete=False, bins=2):
         data_yx = np.hstack((data_y, data_x))
         joint_entropy_yx = entropy_histogram(data_yx, bins=bins)
 
+        assert joint_entropy_yx >= 0, f"{joint_entropy_yx = }"
+
         # Entropy H(X)
         entropy_x = entropy_histogram(data_x, bins=bins)
+
+        assert entropy_x >= 0, f"{entropy_x = }"
+
+        # Entropy H(Y)
+        entropy_y = entropy_histogram(data_y, bins=bins)
+
+        assert entropy_y >= 0, f"{entropy_y = }"
+
+        # assert joint_entropy_yx >= entropy_x, f"{joint_entropy_yx = }, {entropy_x = }"
+        assert joint_entropy_yx >= entropy_y, f"{joint_entropy_yx = }, {entropy_y = }"
+
+        assert (
+            joint_entropy_yx - entropy_x <= entropy_y
+        ), f"{joint_entropy_yx = }, {entropy_x = }, {entropy_y = }"
 
         # Conditional entropy H(Y | X)
         return max(joint_entropy_yx - entropy_x, 0)
