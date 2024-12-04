@@ -571,6 +571,19 @@ def conditional_entropy(data_y, data_x, y_is_discrete=False, bandwidth=0.5, bins
     :param bins: Bins for discretization
     :return: Estimated conditional entropy H(Y | X)
     """
+    # Entropy H(X)
+    h_x = entropy_kde(data_x, bandwidth)
+    print(f"Entropy X: {h_x}")
+
+    # Entropy H(Y)
+    y_is_discrete = (data_y == data_y.astype(int)).all()
+    h_y = (
+        entropy_kde(data_y, bandwidth)
+        if not y_is_discrete
+        else entropy_discrete(data_y)
+    )
+    print(f"Entropy Y: {h_y}")
+
     if y_is_discrete or bins is not None:
         if bins is not None:
             if isinstance(bins, int):
@@ -595,15 +608,18 @@ def conditional_entropy(data_y, data_x, y_is_discrete=False, bandwidth=0.5, bins
                 joint_entropy_yx += p_y * entropy_kde(sub_data_x, bandwidth)
 
         # This is H(X | Y)
-        return joint_entropy_yx
+        h_x_given_y = joint_entropy_yx
 
+        # Use H(Y | X) = H(X | Y) - H(X) + H(Y)
+        h_y_given_x = h_x_given_y - h_x + h_y
+
+        return h_y_given_x
     else:
         # Continuous Y: Joint entropy H(Y, X)
         data_yx = np.hstack((data_y, data_x))
         joint_entropy_yx = entropy_kde(data_yx, bandwidth)
 
-    # Entropy H(X)
-    h_x = entropy_kde(data_x, bandwidth)
+    print(f"Joint entropy: {joint_entropy_yx}")
 
     # Conditional entropy H(Y | X)
     h_y_given_x = joint_entropy_yx - h_x
