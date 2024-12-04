@@ -740,12 +740,17 @@ def conditional_entropy_histogram(data_y, data_x, bins=2):
     assert entropy_y >= 0, f"{entropy_y = }"
 
     # Assert joint entropy is greater than or equal to the marginal entropies with a small relative tolerance
-    # assert joint_entropy_yx >= entropy_x or np.isclose(
-    #     joint_entropy_yx, entropy_x, rtol=3e-4
-    # ), f"{joint_entropy_yx = }, {entropy_x = } rtol={np.abs(joint_entropy_yx - entropy_x) / np.abs(entropy_x)}"
-    # assert joint_entropy_yx >= entropy_y or np.isclose(
-    #     joint_entropy_yx, entropy_y, rtol=3e-4
-    # ), f"{joint_entropy_yx = }, {entropy_y = } rtol={np.abs(joint_entropy_yx - entropy_y) / np.abs(entropy_y)}"
+    # Determine maximum entropy between X and Y
+    max_entropy = max(entropy_x, entropy_y)
+    # assert joint_entropy_yx >= max_entropy or np.isclose(
+    #     joint_entropy_yx, max_entropy, rtol=3e-4
+    # ), f"{joint_entropy_yx = }, {max_entropy = } rtol={np.abs(joint_entropy_yx - max_entropy) / np.abs(max_entropy)}"
+
+    if joint_entropy_yx < max_entropy:
+        # Print a warning indicating the joint entropy is outside the bounds
+        print(
+            f"Warning: Joint entropy H(Y, X) is less than max entropy: \n[H(X, Y)] {joint_entropy_yx} < {max_entropy} [max(H(X),H(Y))]"
+        )
 
     # assert (
     #     joint_entropy_yx - entropy_x <= entropy_y
