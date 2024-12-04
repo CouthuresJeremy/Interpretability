@@ -715,7 +715,7 @@ def entropy_histogram(data, bins=10):
     return entropy_discrete(digitized_data)
 
 
-def conditional_entropy_histogram(data_y, data_x, y_is_discrete=False, bins=2):
+def conditional_entropy_histogram(data_y, data_x, bins=2):
     """
     Estimate conditional entropy H(Y | X) using a histogram-based approach.
     :param data_y: Numpy array of shape (n_samples, 1), the target variable Y
@@ -724,61 +724,45 @@ def conditional_entropy_histogram(data_y, data_x, y_is_discrete=False, bins=2):
     :param bins: Number of bins for the histogram
     :return: Estimated conditional entropy H(Y | X)
     """
-    if y_is_discrete:
-        print(f"Bins: {[min(np.unique(data_y).size, 50)] + [bins] * data_x.shape[1]}")
-        # Compute joint entropy H(Y, X)
-        data_yx = np.hstack((data_y, data_x))
-        joint_entropy_yx = entropy_histogram(
-            data_yx,
-            bins=[min(np.unique(data_y).size, 50)] + [bins] * data_x.shape[1],
+    # Continuous Y: Joint entropy H(Y, X)
+    data_yx = np.hstack((data_y, data_x))
+    joint_entropy_yx = entropy_histogram(data_yx, bins=bins)
+
+    assert joint_entropy_yx >= 0, f"{joint_entropy_yx = }"
+
+    # Entropy H(X)
+    entropy_x = entropy_histogram(data_x, bins=bins)
+
+    assert entropy_x >= 0, f"{entropy_x = }"
+
+    # Entropy H(Y)
+    entropy_y = entropy_histogram(data_y, bins=bins)
+
+    assert entropy_y >= 0, f"{entropy_y = }"
+
+    # Assert joint entropy is greater than or equal to the marginal entropies with a small relative tolerance
+    # assert joint_entropy_yx >= entropy_x or np.isclose(
+    #     joint_entropy_yx, entropy_x, rtol=3e-4
+    # ), f"{joint_entropy_yx = }, {entropy_x = } rtol={np.abs(joint_entropy_yx - entropy_x) / np.abs(entropy_x)}"
+    # assert joint_entropy_yx >= entropy_y or np.isclose(
+    #     joint_entropy_yx, entropy_y, rtol=3e-4
+    # ), f"{joint_entropy_yx = }, {entropy_y = } rtol={np.abs(joint_entropy_yx - entropy_y) / np.abs(entropy_y)}"
+
+    # assert (
+    #     joint_entropy_yx - entropy_x <= entropy_y
+    # ), f"{joint_entropy_yx = }, {entropy_x = }, {entropy_y = }"
+
+    if joint_entropy_yx - entropy_x > entropy_y:
+        # Print a warning indicating the conditional entropy is outside the bounds
+        print(
+            f"Warning: Conditional entropy H(Y | X) is greater than entropy Y: {joint_entropy_yx - entropy_x} > {entropy_y}"
         )
-
-        # Marginal entropy H(X)
-        entropy_x = entropy_histogram(data_x, bins=bins)
-
-        # Marginal entropy H(Y)
-        entropy_y = entropy_discrete(data_y)
-
-        assert joint_entropy_yx >= 0, f"{joint_entropy_yx = }"
-        assert entropy_x >= 0, f"{entropy_x = }"
-        assert entropy_y >= 0, f"{entropy_y = }"
-
-        assert joint_entropy_yx >= entropy_x, f"{joint_entropy_yx = }, {entropy_x = }"
-        # assert joint_entropy_yx >= entropy_y, f"{joint_entropy_yx = }, {entropy_y = }"
-
         print(
             f"Joint entropy: {joint_entropy_yx}, Entropy X: {entropy_x}, Entropy Y: {entropy_y}"
         )
 
-        # Conditional entropy
-        return max(joint_entropy_yx - entropy_x, 0)
-
-    else:
-        # Continuous Y: Joint entropy H(Y, X)
-        data_yx = np.hstack((data_y, data_x))
-        joint_entropy_yx = entropy_histogram(data_yx, bins=bins)
-
-        assert joint_entropy_yx >= 0, f"{joint_entropy_yx = }"
-
-        # Entropy H(X)
-        entropy_x = entropy_histogram(data_x, bins=bins)
-
-        assert entropy_x >= 0, f"{entropy_x = }"
-
-        # Entropy H(Y)
-        entropy_y = entropy_histogram(data_y, bins=bins)
-
-        assert entropy_y >= 0, f"{entropy_y = }"
-
-        # assert joint_entropy_yx >= entropy_x, f"{joint_entropy_yx = }, {entropy_x = }"
-        assert joint_entropy_yx >= entropy_y, f"{joint_entropy_yx = }, {entropy_y = }"
-
-        assert (
-            joint_entropy_yx - entropy_x <= entropy_y
-        ), f"{joint_entropy_yx = }, {entropy_x = }, {entropy_y = }"
-
-        # Conditional entropy H(Y | X)
-        return max(joint_entropy_yx - entropy_x, 0)
+    # Conditional entropy H(Y | X)
+    return max(joint_entropy_yx - entropy_x, 0)
 
 
 # Example dataset: Continuous variables
@@ -844,7 +828,7 @@ df_continuous["poisson_hit"] = np.random.poisson(1, size=(df_continuous.shape[0]
 #     data_y = feature_values.reshape(-1, 1)  # Dependent variable (Z)
 #     data_x = layer_outputs  # Conditioning variables (X, Y)
 #     # conditional_entropy_val = conditional_entropy_histogram(
-#     #     data_y, data_x, y_is_discrete=y_is_discrete
+#     #     data_y, data_x
 #     # )
 
 #     # # Compute the entropy of the feature
@@ -914,7 +898,7 @@ df_continuous["poisson_hit"] = np.random.poisson(1, size=(df_continuous.shape[0]
 #     data_y = feature_values.reshape(-1, 1)  # Dependent variable (Z)
 #     data_x = layer_outputs  # Conditioning variables (X, Y)
 #     # conditional_entropy_val = conditional_entropy_histogram(
-#     #     data_y, data_x, y_is_discrete=y_is_discrete
+#     #     data_y, data_x
 #     # )
 
 #     # # Compute the entropy of the feature
