@@ -430,6 +430,7 @@ def entropy_kde(data, bandwidth=0.5, verbose=False):
     # Estimate log density
     log_density = kde.score_samples(data)
     log_density_samples = kde.score_samples(samples)
+    prob_samples = np.exp(log_density_samples)
 
     # Verify the sum of probabilities
     if verbose:
@@ -516,9 +517,8 @@ def entropy_kde(data, bandwidth=0.5, verbose=False):
     entropy = -np.sum(np.exp(log_density) * log_density * volumes)
 
     # Compute entropy as the negative mean log-density
-    sample_entropy = -np.sum(
-        np.exp(log_density_samples) * log_density_samples * volumes_samples
-    )
+    sample_entropy = -np.sum(prob_samples * log_density_samples * volumes_samples)
+    # print(f"Samp Entropy: {sample_entropy}")
 
         print(
             f"Data entropy: {entropy}, Sample entropy: {sample_entropy}, Sample entropy LDDP: {sample_entropy_lddp}"
@@ -529,21 +529,14 @@ def entropy_kde(data, bandwidth=0.5, verbose=False):
     # sample_entropy_lddp = -np.sum(np.exp(log_density_samples) * log_density_samples)
 
     # Compare with the KL divergence
-    print(f"len samples: {len(samples)}")
-    kl_divergence = np.sum(
-        np.exp(log_density_samples)
-        * (np.log(np.exp(log_density_samples) / (1 / len(samples))))
-    )
-    print(f"KL Divergence 1: {kl_divergence}")
-    kl_divergence = np.sum(
-        np.exp(log_density_samples)
-        * (np.log(np.exp(log_density_samples) / density_volumes_samples))
-    )
-    print(f"KL Divergence: {kl_divergence}")
-    print(f"LLDP: {sample_entropy_lddp}")
+    from scipy.stats import entropy as scipy_entropy
 
-    print(f"Log N: {np.log(len(samples))}")
+    # Compute entropy using scipy
+    sample_entropy_scipy = scipy_entropy(
+        pk=prob_samples, qk=np.ones_like(prob_samples) / len(samples)
+    )
 
+    # sample_entropy_scipy = np.log(len(samples)) - sample_entropy_scipy
     if verbose:
         print(
             f"Data entropy: {entropy}, Sample entropy: {sample_entropy}, Sample entropy LDDP: {sample_entropy_lddp}"
