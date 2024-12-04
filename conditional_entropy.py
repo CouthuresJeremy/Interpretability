@@ -335,13 +335,38 @@ import numpy as np
 
 def entropy_discrete(y):
     """
-    Compute entropy for a discrete variable Y.
-    :param y: Numpy array of shape (n_samples,), the discrete variable Y
-    :return: Estimated entropy
+    Compute entropy for discrete variables by counting the number of unique combinations.
+    Works for both single and multi-dimensional discrete variables.
     """
-    _, counts = np.unique(y, return_counts=True)
+    _, counts = np.unique(y, return_counts=True, axis=0)
     probabilities = counts / len(y)
     return -np.sum(probabilities * np.log(probabilities))
+
+
+def joint_entropy_discrete(x, y):
+    """
+    Compute joint entropy for two discrete variables X and Y.
+    :param x: Numpy array of shape (n_samples,), the discrete variable X
+    :param y: Numpy array of shape (n_samples,), the discrete variable Y
+    :return: Estimated joint entropy
+    """
+    unique_x = np.unique(x)
+    unique_y = np.unique(y)
+
+    # Compute joint probabilities
+    joint_probabilities = np.zeros((len(unique_x), len(unique_y)))
+    for i, x_val in enumerate(unique_x):
+        if i % 10 == 0:
+            print(f"{i = } / {len(unique_x)}")
+        for j, y_val in enumerate(unique_y):
+            joint_probabilities[i, j] = np.mean((x == x_val) & (y == y_val))
+
+    # Compute joint entropy
+    # Remove zero probabilities to avoid log(0)
+    joint_probabilities = joint_probabilities[joint_probabilities != 0]
+    joint_entropy_value = -np.sum(joint_probabilities * np.log(joint_probabilities))
+
+    return joint_entropy_value
 
 
 def entropy_discrete(y):
