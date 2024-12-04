@@ -1338,7 +1338,7 @@ layer_index = len(neuron_activations) - 1
 #     layer_index, event, particles, neuron_activations, df_continuous, bandwidth=bandwidth
 # )
 
-exit()
+# exit()
 # for neuron_idx1, neuron_idx2 in combinations(range(layer_outputs.shape[1]), 2):
 
 #     # x1 = layer_outputs[:, neuron_idx1].reshape(
@@ -1476,10 +1476,10 @@ def plot_2d_density(df_continuous):
 #         for (neuron_idx1, neuron_idx2), value in joint_mutual_information_values.items()
 #     ]
 # )
-exit()
-output_filename = f"joint_mutual_information_event{event:09d}.csv"
-joint_mutual_information_df.to_csv(output_filename, index=False)
-print(f"Joint mutual information values saved to '{output_filename}'")
+# exit()
+# output_filename = f"joint_mutual_information_event{event:09d}.csv"
+# joint_mutual_information_df.to_csv(output_filename, index=False)
+# print(f"Joint mutual information values saved to '{output_filename}'")
 
 
 # # Print the feature names and their mutual information with neuron 935
@@ -1496,7 +1496,7 @@ print(f"Joint mutual information values saved to '{output_filename}'")
 #     print(
 #         f"Feature: {feature}, Mutual Information: {mutual_information_values[i]}, Conditional Entropy: {conditional_entropy_value}, Sum: {mutual_information_values[i] + conditional_entropy_value}, Entropy: {entropy_value} or {entropy(df_continuous[feature].to_numpy())}"
 #     )
-exit()
+# exit()
 
 # # Plot r vs z with the color of the points representing the output of neuron 86
 # plt.scatter(input_df["z"], input_df["r"], c=neuron_86_output)
