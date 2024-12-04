@@ -402,6 +402,10 @@ def entropy_kde(data, bandwidth=0.5, verbose=False):
     if len(data.shape) == 1:
         data = data.reshape(-1, 1)
 
+    # Handle duplicate samples
+    if np.unique(data, axis=0).shape[0] <= 1:
+        return 0
+
     verbose = data.shape[1] <= 2
     verbose = data.shape[1] == 2
     verbose = False
