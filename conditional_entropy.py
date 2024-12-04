@@ -1200,95 +1200,106 @@ exit()
 
 
 # Plot kde fit for the features
-for feature in df_continuous.columns:
-    feature_values = df_continuous[feature].to_numpy()
-    # If the feature is not continuous, skip
-    if not np.issubdtype(feature_values.dtype, np.number):
-        print(f"Feature {feature} is not continuous")
-        continue
+def compare_continuous_entropy(df_continuous, entropy_discrete, entropy_kde):
+    for feature in df_continuous.columns:
+        feature_values = df_continuous[feature].to_numpy()
+        # If the feature is not continuous, skip
+        if not np.issubdtype(feature_values.dtype, np.number):
+            print(f"Feature {feature} is not continuous")
+            continue
 
-    if (
-        not feature
-        in [
-            # "norm_x_1",
-            # "norm_y_1",
-            # "norm_z_1",
-            "eta_angle",
-            "phi_angle",
-            "z",
-            "cluster_z",
-            "vz",
-            "px",
-            "py",
-            "pz",
-            "pt",
-            "eta",
-            "phi",
-            "theta",
-        ]
-        and False
-    ):
-        continue
+        if (
+            not feature
+            in [
+                # "norm_x_1",
+                # "norm_y_1",
+                # "norm_z_1",
+                "eta_angle",
+                "phi_angle",
+                "z",
+                "cluster_z",
+                "vz",
+                "px",
+                "py",
+                "pz",
+                "pt",
+                "eta",
+                "phi",
+                "theta",
+            ]
+            and False
+        ):
+            continue
 
-    bandwidth = 0.5
-    bandwidth = 0.1
-    bandwidth = 1
-    bandwidth = 2
-    bandwidth = 4
-    bandwidth = 8
-    # Compute the entropy of the feature
-    data_y = feature_values.reshape(-1, 1)
-    data_y_entropy = entropy_kde(data_y, bandwidth=bandwidth)
-    # Compare with discrete entropy if the feature is discrete
-    if (df_continuous[feature].abs() == df_continuous[feature].abs().astype(int)).all():
-        data_y_entropy_discrete = entropy_discrete(feature_values)
-        print(
-            f"Entropy of feature '{feature}': {data_y_entropy} (continuous) vs {data_y_entropy_discrete} (discrete)"
-        )
-    else:
-        print(f"Entropy of feature '{feature}': {data_y_entropy}")
+        bandwidth = 0.5
+        bandwidth = 0.1
+        bandwidth = 1
+        bandwidth = 2
+        bandwidth = 4
+        bandwidth = 8
+        # Compute the entropy of the feature
+        data_y = feature_values.reshape(-1, 1)
+        data_y_entropy = entropy_kde(data_y, bandwidth=bandwidth)
+        # Compare with discrete entropy if the feature is discrete
+        if (
+            df_continuous[feature].abs() == df_continuous[feature].abs().astype(int)
+        ).all():
+            data_y_entropy_discrete = entropy_discrete(feature_values)
+            print(
+                f"Entropy of feature '{feature}': {data_y_entropy} (continuous) vs {data_y_entropy_discrete} (discrete)"
+            )
+        else:
+            print(f"Entropy of feature '{feature}': {data_y_entropy}")
 
-    # Plot the KDE fit for the feature
-    kde = KernelDensity(kernel="gaussian", bandwidth=bandwidth)
-    kde.fit(data_y)
-    x = np.linspace(min(feature_values), max(feature_values), 1000).reshape(-1, 1)
-    log_density = kde.score_samples(x)
-    density = np.exp(log_density)
-    plt.plot(x, density, label=feature)
-    # Compare with the histogram
-    plt.hist(feature_values, bins=1000, density=True, alpha=0.5)
-    plt.xlabel(feature)
-    plt.ylabel("Density")
-    plt.legend()
-    plt.show()
+        # Plot the KDE fit for the feature
+        kde = KernelDensity(kernel="gaussian", bandwidth=bandwidth)
+        kde.fit(data_y)
+        x = np.linspace(min(feature_values), max(feature_values), 1000).reshape(-1, 1)
+        log_density = kde.score_samples(x)
+        density = np.exp(log_density)
+        plt.plot(x, density, label=feature)
+        # Compare with the histogram
+        plt.hist(feature_values, bins=1000, density=True, alpha=0.5)
+        plt.xlabel(feature)
+        plt.ylabel("Density")
+        plt.legend()
+        plt.show()
 
-    # Discrete features are not modeled well by KDE
-    # Normed coordinates are not modeled well by KDE
-    # eta_angle is not modeled well by KDE
-    # phi_angle is not modeled well by KDE
-    # z, cluster_z and vz are not modeled well by KDE
-    # px, py, pz are not modeled well by KDE
-    # pt could be modeled better by KDE
-    # eta and phi are okay
-    # theta is not modeled well by KDE (better with a smaller bandwidth)
+        # Discrete features are not modeled well by KDE
+        # Normed coordinates are not modeled well by KDE
+        # eta_angle is not modeled well by KDE
+        # phi_angle is not modeled well by KDE
+        # z, cluster_z and vz are not modeled well by KDE
+        # px, py, pz are not modeled well by KDE
+        # pt could be modeled better by KDE
+        # eta and phi are okay
+        # theta is not modeled well by KDE (better with a smaller bandwidth)
+
+
+# compare_continuous_entropy(df_continuous, entropy_discrete, entropy_kde)
+
 
 # Plot the KDE fit for (z, r)
-kde = KernelDensity(kernel="gaussian", bandwidth=0.5)
-kde.fit(df_continuous[["z", "r"]].to_numpy())
-x = np.linspace(min(df_continuous["z"]), max(df_continuous["z"]), 1000)
-y = np.linspace(min(df_continuous["r"]), max(df_continuous["r"]), 1000)
-X, Y = np.meshgrid(x, y)
-positions = np.vstack([X.ravel(), Y.ravel()]).T
-log_density = kde.score_samples(positions)
-density = np.exp(log_density)
-plt.contourf(X, Y, density.reshape(X.shape))
-# Compare with the histogram
-plt.hist2d(df_continuous["z"], df_continuous["r"], bins=1000, density=True)
-plt.xlabel("z")
-plt.ylabel("r")
-# Show color bar
-plt.colorbar()
-plt.show()
+def plot_2d_density(df_continuous):
+    kde = KernelDensity(kernel="gaussian", bandwidth=0.5)
+    kde.fit(df_continuous[["z", "r"]].to_numpy())
+    x = np.linspace(min(df_continuous["z"]), max(df_continuous["z"]), 1000)
+    y = np.linspace(min(df_continuous["r"]), max(df_continuous["r"]), 1000)
+    X, Y = np.meshgrid(x, y)
+    positions = np.vstack([X.ravel(), Y.ravel()]).T
+    log_density = kde.score_samples(positions)
+    density = np.exp(log_density)
+    plt.contourf(X, Y, density.reshape(X.shape))
+    # Compare with the histogram
+    plt.hist2d(df_continuous["z"], df_continuous["r"], bins=1000, density=True)
+    plt.xlabel("z")
+    plt.ylabel("r")
+    # Show color bar
+    plt.colorbar()
+    plt.show()
+
+
+# plot_2d_density(df_continuous)
 
 
 # # Save the joint mutual information values to a CSV file
@@ -1625,125 +1636,128 @@ def get_layer_parameters(state_dict, state_dict_keys, layer):
 #     state_dict, state_dict_keys, layer
 # )
 
-# activations = neuron_activations[layer_name_activations].numpy()
-activations = neuron_activations[layer_name].numpy()
 
-# Do the same without the isocurves
-no_iso_dir_layer_subplots = Path(f"no_iso_layer_{layer}_subplots")
-no_iso_dir_layer_subplots.mkdir(exist_ok=True)
+def visualize_neuron_output(event, input_df, neuron_activations, layer, layer_name):
+    # activations = neuron_activations[layer_name_activations].numpy()
+    activations = neuron_activations[layer_name].numpy()
 
-for i in range(len(activations)):
-    # neuron_weights = neurons_weights[i]
-    # neuron_biases = neurons_biases[i]
+    # Do the same without the isocurves
+    no_iso_dir_layer_subplots = Path(f"no_iso_layer_{layer}_subplots")
+    no_iso_dir_layer_subplots.mkdir(exist_ok=True)
 
-    # Do input*weights + biases
-    neuron_output = activations[i]
+    for i in range(len(activations)):
+        # neuron_weights = neurons_weights[i]
+        # neuron_biases = neurons_biases[i]
+        # Do input*weights + biases
+        neuron_output = activations[i]
 
-    fig, axs = plt.subplots(1, 4, figsize=(22, 5))
+        fig, axs = plt.subplots(1, 4, figsize=(22, 5))
 
-    # Plot isocurves of the output of neuron i with a lot of points
-    axs[0].scatter(input_df["z"], input_df["r"], c=neuron_output)
-    axs[0].set_xlabel("z")
-    axs[0].set_ylabel("r")
-    axs[0].set_title(f"Layer {layer} Neuron {i} Output")
+        # Plot isocurves of the output of neuron i with a lot of points
+        axs[0].scatter(input_df["z"], input_df["r"], c=neuron_output)
+        axs[0].set_xlabel("z")
+        axs[0].set_ylabel("r")
+        axs[0].set_title(f"Layer {layer} Neuron {i} Output")
 
-    axs[1].scatter(input_df["x"], input_df["y"], c=neuron_output)
-    axs[1].set_xlabel("x")
-    axs[1].set_ylabel("y")
-    axs[1].set_title(f"Layer {layer} Neuron {i} Output")
-    # Make the aspect ratio equal
-    axs[1].set_aspect("equal")
+        axs[1].scatter(input_df["x"], input_df["y"], c=neuron_output)
+        axs[1].set_xlabel("x")
+        axs[1].set_ylabel("y")
+        axs[1].set_title(f"Layer {layer} Neuron {i} Output")
+        # Make the aspect ratio equal
+        axs[1].set_aspect("equal")
 
-    axs[2].scatter(input_df["r"], input_df["phi"], c=neuron_output)
-    axs[2].set_xlabel("r")
-    axs[2].set_ylabel("phi")
-    axs[2].set_title(f"Layer {layer} Neuron {i} Output")
+        axs[2].scatter(input_df["r"], input_df["phi"], c=neuron_output)
+        axs[2].set_xlabel("r")
+        axs[2].set_ylabel("phi")
+        axs[2].set_title(f"Layer {layer} Neuron {i} Output")
 
-    axs[3].scatter(input_df["z"], input_df["phi"], c=neuron_output)
-    axs[3].set_xlabel("z")
-    axs[3].set_ylabel("phi")
-    axs[3].set_title(f"Layer {layer} Neuron {i} Output")
+        axs[3].scatter(input_df["z"], input_df["phi"], c=neuron_output)
+        axs[3].set_xlabel("z")
+        axs[3].set_ylabel("phi")
+        axs[3].set_title(f"Layer {layer} Neuron {i} Output")
 
-    plt.savefig(
-        no_iso_dir_layer_subplots / f"neuron_{i}_output_event{event:09d}_r_z_phi.png"
-    )
-    plt.close()
+        plt.savefig(
+            no_iso_dir_layer_subplots
+            / f"neuron_{i}_output_event{event:09d}_r_z_phi.png"
+        )
+        plt.close()
 
-# Do the same with isocurves
-isocurves_dir_layer_subplots = Path(f"isocurves_layer_{layer}_subplots")
-isocurves_dir_layer_subplots.mkdir(exist_ok=True)
+    # Do the same with isocurves
+    isocurves_dir_layer_subplots = Path(f"isocurves_layer_{layer}_subplots")
+    isocurves_dir_layer_subplots.mkdir(exist_ok=True)
 
-for i in range(len(activations)):
-    # neuron_weights = neurons_weights[i]
-    # neuron_biases = neurons_biases[i]
+    for i in range(len(activations)):
+        # neuron_weights = neurons_weights[i]
+        # neuron_biases = neurons_biases[i]
+        # Do input*weights + biases
+        neuron_output = activations[i]
 
-    # Do input*weights + biases
-    neuron_output = activations[i]
+        fig, axs = plt.subplots(1, 4, figsize=(22, 5))
 
-    fig, axs = plt.subplots(1, 4, figsize=(22, 5))
+        # Plot isocurves of the output of neuron i with a lot of points
+        axs[0].tricontourf(input_df["z"], input_df["r"], neuron_output, levels=20)
+        axs[0].set_xlabel("z")
+        axs[0].set_ylabel("r")
+        axs[0].set_title(f"Layer {layer} Neuron {i} Output Isocurves")
 
-    # Plot isocurves of the output of neuron i with a lot of points
-    axs[0].tricontourf(input_df["z"], input_df["r"], neuron_output, levels=20)
-    axs[0].set_xlabel("z")
-    axs[0].set_ylabel("r")
-    axs[0].set_title(f"Layer {layer} Neuron {i} Output Isocurves")
+        axs[1].tricontourf(input_df["x"], input_df["y"], neuron_output, levels=20)
+        axs[1].set_xlabel("x")
+        axs[1].set_ylabel("y")
+        axs[1].set_title(f"Layer {layer} Neuron {i} Output Isocurves")
 
-    axs[1].tricontourf(input_df["x"], input_df["y"], neuron_output, levels=20)
-    axs[1].set_xlabel("x")
-    axs[1].set_ylabel("y")
-    axs[1].set_title(f"Layer {layer} Neuron {i} Output Isocurves")
+        axs[2].tricontourf(input_df["r"], input_df["phi"], neuron_output, levels=20)
+        axs[2].set_xlabel("r")
+        axs[2].set_ylabel("phi")
+        axs[2].set_title(f"Layer {layer} Neuron {i} Output Isocurves")
 
-    axs[2].tricontourf(input_df["r"], input_df["phi"], neuron_output, levels=20)
-    axs[2].set_xlabel("r")
-    axs[2].set_ylabel("phi")
-    axs[2].set_title(f"Layer {layer} Neuron {i} Output Isocurves")
+        axs[3].tricontourf(input_df["z"], input_df["phi"], neuron_output, levels=20)
+        axs[3].set_xlabel("z")
+        axs[3].set_ylabel("phi")
+        axs[3].set_title(f"Layer {layer} Neuron {i} Output Isocurves")
 
-    axs[3].tricontourf(input_df["z"], input_df["phi"], neuron_output, levels=20)
-    axs[3].set_xlabel("z")
-    axs[3].set_ylabel("phi")
-    axs[3].set_title(f"Layer {layer} Neuron {i} Output Isocurves")
+        plt.savefig(
+            isocurves_dir_layer_subplots
+            / f"neuron_{i}_output_event{event:09d}_r_z_phi_isocurves.png"
+        )
+        plt.close()
 
-    plt.savefig(
-        isocurves_dir_layer_subplots
-        / f"neuron_{i}_output_event{event:09d}_r_z_phi_isocurves.png"
-    )
-    plt.close()
+    isocurves_dir_layer_subplots = Path(f"isocurves_layer_{layer}_subplots_eta_rho")
+    isocurves_dir_layer_subplots.mkdir(exist_ok=True)
 
-isocurves_dir_layer_subplots = Path(f"isocurves_layer_{layer}_subplots_eta_rho")
-isocurves_dir_layer_subplots.mkdir(exist_ok=True)
+    for i in range(len(activations)):
+        # neuron_weights = neurons_weights[i]
+        # neuron_biases = neurons_biases[i]
+        # Do input*weights + biases
+        neuron_output = activations[i]
 
-for i in range(len(activations)):
-    # neuron_weights = neurons_weights[i]
-    # neuron_biases = neurons_biases[i]
+        fig, axs = plt.subplots(1, 4, figsize=(22, 5))
 
-    # Do input*weights + biases
-    neuron_output = activations[i]
+        # Plot isocurves of the output of neuron i with a lot of points
+        axs[0].tricontourf(input_df["z"], input_df["r"], neuron_output, levels=20)
+        axs[0].set_xlabel("z")
+        axs[0].set_ylabel("r")
+        axs[0].set_title(f"Layer {layer} Neuron {i} Output Isocurves")
 
-    fig, axs = plt.subplots(1, 4, figsize=(22, 5))
+        axs[1].tricontourf(input_df["x"], input_df["y"], neuron_output, levels=20)
+        axs[1].set_xlabel("x")
+        axs[1].set_ylabel("y")
+        axs[1].set_title(f"Layer {layer} Neuron {i} Output Isocurves")
 
-    # Plot isocurves of the output of neuron i with a lot of points
-    axs[0].tricontourf(input_df["z"], input_df["r"], neuron_output, levels=20)
-    axs[0].set_xlabel("z")
-    axs[0].set_ylabel("r")
-    axs[0].set_title(f"Layer {layer} Neuron {i} Output Isocurves")
+        axs[2].tricontourf(input_df["eta"], input_df["rho"], neuron_output, levels=20)
+        axs[2].set_xlabel("eta")
+        axs[2].set_ylabel("rho")
+        axs[2].set_title(f"Layer {layer} Neuron {i} Output Isocurves")
 
-    axs[1].tricontourf(input_df["x"], input_df["y"], neuron_output, levels=20)
-    axs[1].set_xlabel("x")
-    axs[1].set_ylabel("y")
-    axs[1].set_title(f"Layer {layer} Neuron {i} Output Isocurves")
+        axs[3].tricontourf(input_df["eta"], input_df["z"], neuron_output, levels=20)
+        axs[3].set_xlabel("eta")
+        axs[3].set_ylabel("z")
+        axs[3].set_title(f"Layer {layer} Neuron {i} Output Isocurves")
 
-    axs[2].tricontourf(input_df["eta"], input_df["rho"], neuron_output, levels=20)
-    axs[2].set_xlabel("eta")
-    axs[2].set_ylabel("rho")
-    axs[2].set_title(f"Layer {layer} Neuron {i} Output Isocurves")
+        plt.savefig(
+            isocurves_dir_layer_subplots
+            / f"neuron_{i}_output_event{event:09d}_r_z_phi_isocurves.png"
+        )
+        plt.close()
 
-    axs[3].tricontourf(input_df["eta"], input_df["z"], neuron_output, levels=20)
-    axs[3].set_xlabel("eta")
-    axs[3].set_ylabel("z")
-    axs[3].set_title(f"Layer {layer} Neuron {i} Output Isocurves")
 
-    plt.savefig(
-        isocurves_dir_layer_subplots
-        / f"neuron_{i}_output_event{event:09d}_r_z_phi_isocurves.png"
-    )
-    plt.close()
+# visualize_neuron_output(event, input_df, neuron_activations, layer, layer_name)
