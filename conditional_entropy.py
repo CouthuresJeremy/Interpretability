@@ -654,6 +654,67 @@ def entropy_histogram(data, bins=10):
     return -np.sum(probabilities * np.log(probabilities))
 
 
+def entropy_histogram(data, bins=10):
+    """
+    Estimate entropy using a histogram-based approach.
+    :param data: Numpy array of shape (n_samples, n_features)
+    :param bins: Number of bins for the histogram
+    :return: Estimated entropy
+    """
+    # If bins is an integer, take max between bins and 2
+    if isinstance(bins, int):
+        bins = max(bins, 2)
+    if isinstance(data, pd.DataFrame):
+        data = data.values
+    if len(data.shape) == 1:
+        data = data.reshape(-1, 1)
+    from copy import deepcopy
+
+    digitized_data = deepcopy(data)
+    # Discretize the data
+    for i in range(digitized_data.shape[1]):
+        # Do not digitize if the data is already discrete
+        if (data[:, i] == data[:, i].astype(int)).all():
+            continue
+        digitized_data[:, i] = np.digitize(
+            digitized_data[:, i],
+            bins=np.histogram_bin_edges(digitized_data[:, i], bins=bins),
+        )
+    if digitized_data.shape[1] == 1 and False:
+        # plot the digitized data hist and the original data hist
+        import matplotlib.pyplot as plt
+
+        # print(np.min(digitized_data), np.max(digitized_data))
+
+        # Map the digitized data back to the original data (replace bin index with bin center)
+        digitized_data_mean = np.histogram_bin_edges(data[:, 0], bins=bins)[
+            digitized_data[:, 0].astype(int) - 1
+        ]
+        # print(digitized_data_mean)
+
+        plt.hist(data, bins=bins, density=True, label="Original data", alpha=0.5)
+        plt.hist(
+            digitized_data_mean,
+            bins=np.histogram_bin_edges(data[:, 0], bins=bins),
+            density=True,
+            label="Digitized data",
+            alpha=0.5,
+        )
+        plt.legend()
+        plt.grid(True)
+        plt.show()
+
+    if digitized_data.shape[1] == 1 and False:
+        print(f"Data: {digitized_data}")
+        print(f"np.unique(data): {np.unique(digitized_data)}")
+        print(f"np.unique(data).size: {np.unique(digitized_data).size}")
+        print(
+            f"np.histogram_bin_edges(data[:, 0], bins=bins): {np.histogram_bin_edges(digitized_data[:, 0], bins=bins)}"
+        )
+        print(f"np.max(data): {np.max(digitized_data)}")
+    return entropy_discrete(digitized_data)
+
+
 def conditional_entropy_histogram(data_y, data_x, y_is_discrete=False, bins=2):
     """
     Estimate conditional entropy H(Y | X) using a histogram-based approach.
