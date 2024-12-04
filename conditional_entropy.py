@@ -636,6 +636,8 @@ def entropy_histogram(data, bins=10):
     # If bins is an integer, take min between bins and 2
     if isinstance(bins, int):
         bins = min(bins, 2)
+    if isinstance(data, pd.DataFrame):
+        data = data.values
     hist, edges = np.histogramdd(data, bins=bins, density=True)
     probabilities = hist / np.sum(hist)
     probabilities = probabilities[probabilities > 0]  # Exclude zero probabilities
