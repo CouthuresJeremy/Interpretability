@@ -808,6 +808,98 @@ df_continuous["uniform_hit"] = np.random.uniform(0, 1, size=(df_continuous.shape
 df_continuous["normal_hit"] = np.random.normal(0, 1, size=(df_continuous.shape[0], 1))
 df_continuous["poisson_hit"] = np.random.poisson(1, size=(df_continuous.shape[0], 1))
 
+
+def plot_entropy_distribution_coverage(df_continuous, layer_outputs):
+    # Get the conditional entropy for each bin in pt (in MeV)
+    ptMin = 1 * 1000
+    ptMax = 50 * 1000
+    bins = np.logspace(np.log10(ptMin), np.log10(ptMax), num=10)
+
+    # Get the entropy of the feature
+    feature_values = df_continuous["pt"].to_numpy().reshape(-1, 1)
+    feature_entropy = entropy_kde(feature_values, bandwidth=0.5)
+
+    # Discretize the feature
+    df_continuous["pt_bin"] = np.digitize(df_continuous["pt"], bins)
+
+    # Iterate over all bins
+    bin_entropies = []
+    conditional_bin_entropies = []
+    for unique_bin in df_continuous["pt_bin"].unique():
+        print(f"Computing entropy for bin {unique_bin}")
+        # Get the samples in the bin
+        bin_samples = df_continuous[df_continuous["pt_bin"] == unique_bin]
+        bin_samples = bin_samples.drop(columns=["pt_bin"])
+
+        data_y = bin_samples["pt"].to_numpy().reshape(-1, 1)
+
+        # Compute the entropy of the bin
+        bin_entropy = entropy_kde(data_y, bandwidth=0.5)
+
+        # Get the neuron outputs for the bin
+        bin_layer_outputs = layer_outputs[bin_samples.index]
+
+        # Compute the conditional entropy for the bin
+        conditional_entropy_val = conditional_entropy(
+            data_y,
+            bin_layer_outputs,
+            y_is_discrete=False,
+            bandwidth=0.5,
+        )
+
+        # Append the conditional entropy to the list
+        conditional_bin_entropies.append(conditional_entropy_val)
+
+        # Append the entropy to the list
+        bin_entropies.append(bin_entropy)
+
+    # Compute bin efficiency coverage: (1 - (conditional entropy / entropy))
+    efficiencies = [
+        (1 - (conditional_entropy_val / feature_entropy))
+        for conditional_entropy_val in conditional_bin_entropies
+    ]
+
+    # Remove first bin if 0 is in df_continuous["pt_bin"]
+    if 0 in df_continuous["pt_bin"].unique():
+        efficiencies = efficiencies[1:]
+
+    # Plot the pt distribution as well as the proportion of the entropy captured by the neuron outputs for each bin
+    # Use the output of plt.hist to get the bin edges and counts
+    hist, bin_edges = np.histogram(df_continuous["pt"], bins=bins)
+    # Scale the histogram with the efficiency
+    scaled_hist = hist * efficiencies
+    # Plot the original histogram
+    plt.bar(
+        bin_edges[:-1],
+        hist,
+        width=np.diff(bin_edges),
+        align="edge",
+        alpha=0.5,
+        label="pt",
+    )
+    # Plot the covered histogram
+    plt.bar(
+        bin_edges[:-1],
+        scaled_hist,
+        width=np.diff(bin_edges),
+        align="edge",
+        alpha=0.5,
+        label="Entropy Coverage",
+    )
+    plt.grid(True)
+    plt.xlabel("pt (MeV)")
+    plt.ylabel("Count")
+    plt.legend()
+    plt.yscale("log")
+    plt.title("Entropy coverage of pt with Neuron Outputs")
+    plt.show()
+
+
+# if __name__ == "__main__":
+#     plot_entropy_distribution_coverage(df_continuous, layer_outputs)
+#     # exit()
+
+
 # # Iterate over all features and neuron pairs
 # for feature in df_continuous.columns:
 #     # print(
