@@ -892,6 +892,7 @@ def compute_full_conditional_entropy(
     conditional_entropy=conditional_entropy,
     entropy_discrete=entropy_discrete,
     entropy_continuous=entropy_kde,
+    overwrite=False,
 ):
     layer = list(neuron_activations)[layer_index]
     layer_outputs = np.array(
@@ -916,14 +917,15 @@ def compute_full_conditional_entropy(
     information_coverage_df["layer"] = [layer_index]
 
     # Load the file if it exists
-    if os.path.exists(file_path_full_conditional_entropy):
-        conditional_entropy_df = pd.read_csv(file_path_full_conditional_entropy)
-        print(
-            f"Found existing file for Layer {layer_index}. Resuming from Neuron {len(conditional_entropy_df.columns) - 1}"
-        )
+    if not overwrite:
+        if os.path.exists(file_path_full_conditional_entropy):
+            conditional_entropy_df = pd.read_csv(file_path_full_conditional_entropy)
+            print(
+                f"Found existing file for Layer {layer_index}. Resuming from Neuron {len(conditional_entropy_df.columns) - 1}"
+            )
 
-    if os.path.exists(file_path_full_information_coverage):
-        information_coverage_df = pd.read_csv(file_path_full_information_coverage)
+        if os.path.exists(file_path_full_information_coverage):
+            information_coverage_df = pd.read_csv(file_path_full_information_coverage)
 
     # Iterate over all features and neuron pairs
     # for feature in df_continuous.columns:
