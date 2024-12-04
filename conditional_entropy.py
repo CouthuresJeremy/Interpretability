@@ -720,7 +720,6 @@ def conditional_entropy_histogram(data_y, data_x, bins=2):
     Estimate conditional entropy H(Y | X) using a histogram-based approach.
     :param data_y: Numpy array of shape (n_samples, 1), the target variable Y
     :param data_x: Numpy array of shape (n_samples, n_features), the conditioning variables X
-    :param y_is_discrete: Whether Y is discrete (True) or continuous (False)
     :param bins: Number of bins for the histogram
     :return: Estimated conditional entropy H(Y | X)
     """
