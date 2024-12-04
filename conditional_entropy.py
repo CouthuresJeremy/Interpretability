@@ -375,16 +375,6 @@ def joint_entropy_discrete(x, y):
     return joint_entropy_value
 
 
-def entropy_discrete(y):
-    """
-    Compute entropy for a discrete variable Y using scipy.
-    :param y: Numpy array of shape (n_samples,), the discrete variable Y
-    :return: Estimated entropy
-    """
-    _, counts = np.unique(y, return_counts=True)
-    probabilities = counts / len(y)
-    return scipy_entropy(probabilities)
-
 
 def entropy_kde(data, bandwidth=0.5, verbose=False):
     """
