@@ -151,6 +151,12 @@ particles = load_csv_data(
     file_name="event000000101-hard-cut-particles.csv", directory="csv"
 )
 
+# Add 3 random variables for each particles
+# uniform, normal, poisson
+particles["uniform_particle"] = np.random.uniform(0, 1, size=(particles.shape[0], 1))
+particles["normal_particle"] = np.random.normal(0, 1, size=(particles.shape[0], 1))
+particles["poisson_particle"] = np.random.poisson(1, size=(particles.shape[0], 1))
+
 # Load the truth
 truth = load_csv_data(file_name="event000000101-hard-cut-truth.csv", directory="csv")
 
@@ -743,7 +749,15 @@ layer_outputs = np.array(
 ).T  # Transpose for shape (samples, neurons)
 
 # Remove duplicates [r, phi, z] in feature
-df_continuous = df_continuous.drop_duplicates(subset=["r", "phi", "z"])
+df_continuous = df_continuous.drop_duplicates(
+    subset=["r", "phi", "z"], ignore_index=True
+)
+
+# Add 3 random variables for each hit
+# uniform, normal, poisson
+df_continuous["uniform_hit"] = np.random.uniform(0, 1, size=(df_continuous.shape[0], 1))
+df_continuous["normal_hit"] = np.random.normal(0, 1, size=(df_continuous.shape[0], 1))
+df_continuous["poisson_hit"] = np.random.poisson(1, size=(df_continuous.shape[0], 1))
 
 # # Iterate over all features and neuron pairs
 # for feature in df_continuous.columns:
@@ -929,7 +943,11 @@ def compute_full_conditional_entropy(
 
     # Iterate over all features and neuron pairs
     # for feature in df_continuous.columns:
-    for feature in particles.columns:
+    for feature in list(particles.columns) + [
+        "uniform_hit",
+        "normal_hit",
+        "poisson_hit",
+    ]:
         # Skip the feature if it is not in the continuous DataFrame
         if feature not in df_continuous.columns:
             continue
