@@ -558,8 +558,13 @@ def compute_mutual_information(event, neuron_activations, df_continuous):
 
         print(f"Computing mutual information for Layer {layer_index}")
 
+        output_dir = Path("conditional_entropy")
+        output_dir.mkdir(exist_ok=True)
+
         # File path for the current layer's CSV
         layer_file_path = f"mutual_information_event{event:09d}_layer{layer_index}.csv"
+
+        layer_file_path = output_dir / layer_file_path
 
         # Initialize or load existing data for the layer
         if os.path.exists(layer_file_path):
