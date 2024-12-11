@@ -59,6 +59,28 @@ def load_event_data(event_id=101, verbose=False):
     return truth_particles
 
 
+def load_event_activations(event_id=101, verbose=False):
+    activations = torch.load(
+        f"activations/activations_event{event_id:09d}.pt",
+        map_location=torch.device("cpu"),
+    )
+    if verbose:
+        print(activations)
+
+        for key in activations:
+            print(key, activations[key].shape)
+
+        keys = list(activations)
+        print(keys)
+
+    # Transpose the activation to get the neuron distributions
+    neuron_activations = {
+        layer_name: layer_activations.T
+        for layer_name, layer_activations in activations.items()
+    }
+    return neuron_activations
+
+
 # Convert r, phi and z to float32 for the matching
 def match_input_data(truth_particles, load_data=True):
     # Load the file if it exists
