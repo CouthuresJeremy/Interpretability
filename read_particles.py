@@ -482,6 +482,7 @@ print(df_information_coverage)
 
 # Plot the data for each layer (Y axis: "layer", X axis: "mutual_information")
 def plot_information_coverage(event, df_information_coverage):
+    output_dir = Path("./conditional_entropy")
     for feature in df_information_coverage.columns:
         if feature in ["layer", "neuron"]:
             continue
@@ -498,16 +499,33 @@ def plot_information_coverage(event, df_information_coverage):
             vert=False,
             # Set y axis values
             positions=df_information_coverage["layer"].unique(),
+            widths=1,
         )
+        marker_size = 5
+        marker = "o"
         plt.scatter(
             df_information_coverage[feature] * 100,
             df_information_coverage["layer"],
+            s=marker_size,
+            marker=marker,
         )
-        plt.xlabel("Information coverage [%]")
+        # plt.xlabel("Information coverage [%]")
+        plt.xlabel("Proficiency [%]")
         plt.ylabel("Layer")
-        plt.title(f"Information coverage for {feature}")
+        # plt.title(f"Information coverage for {feature}")
+        plt.title(f"Single neuron proficiency for {feature}")
         plt.grid(True)
-        plt.savefig(f"information_coverage_{feature}_event{event:09d}.png")
+        xlim = (-4, 105)
+        assert df_information_coverage[feature].max() < xlim[1] / 100
+        assert (
+            not np.isfinite(df_information_coverage[feature].min())
+            or df_information_coverage[feature].min() > xlim[0] / 100
+        )
+        plt.xlim(*xlim)
+        # plt.savefig(f"information_coverage_{feature}_event{event:09d}.png")
+        plt.savefig(
+            output_dir / f"proficiency_single_neuron_{feature}_event{event:09d}.png"
+        )
         plt.show()
 
 
