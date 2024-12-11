@@ -7,7 +7,12 @@ import os
 from pathlib import Path
 from sklearn.neighbors import KernelDensity
 from sklearn.feature_selection import mutual_info_regression
-from load_data import match_input_data, load_csv_data, load_event_data
+from load_data import (
+    match_input_data,
+    load_csv_data,
+    load_event_data,
+    load_event_activations,
+)
 
 event = 101
 
@@ -350,31 +355,13 @@ n_hits = input_df.shape[0]
 # plt.show()
 
 # Read activations
-event = 100
-event = 101
-activations = torch.load(
-    f"activations/activations_event{event:09d}.pt", map_location=torch.device("cpu")
-)
-print(activations)
+neuron_activations = load_event_activations(event_id=event)
 
-for key in activations:
-    print(key, activations[key].shape)
+keys = list(neuron_activations)
 
-keys = list(activations)
-print(keys)
-layer_1_name = keys[0]
-layer_3_name = keys[2]
-layer_4_name = keys[3]
-
-# Transpose the activation to get the neuron distributions
-neuron_activations = {
-    layer_name: layer_activations.T
-    for layer_name, layer_activations in activations.items()
-}
-
-activations_1 = neuron_activations[layer_1_name].numpy()
-activations_3 = neuron_activations[layer_3_name].numpy()
-activations_4 = neuron_activations[layer_4_name].numpy()
+activations_1 = neuron_activations[keys[0]].numpy()
+activations_3 = neuron_activations[keys[2]].numpy()
+activations_4 = neuron_activations[keys[3]].numpy()
 print(activations_3.shape)
 # print(neuron_935_weights.T.shape)
 
