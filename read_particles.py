@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 from sklearn.neighbors import KernelDensity
 from sklearn.feature_selection import mutual_info_regression
-from load_data import match_input_data, load_csv_data
+from load_data import match_input_data, load_csv_data, load_event
 
 event = 101
 
@@ -214,29 +214,6 @@ def plot_neuron_output_vs_features(neuron_output, df, features):
 
 # print()
 
-# Load the particles
-particles = load_csv_data(
-    file_name="event000000101-hard-cut-particles.csv", directory="csv"
-)
-
-# Load the truth
-truth = load_csv_data(file_name="event000000101-hard-cut-truth.csv", directory="csv")
-
-# Count the number of particle_id_1 != particle_id_2
-print(truth[truth["particle_id_1"] != truth["particle_id_2"]].shape)
-
-
-# Get particles corresponding to the truth
-truth_particle_ids = truth["particle_id"].unique()
-truth_particles = particles[
-    particles["particle_id"].isin(truth_particle_ids)
-    | particles["particle_id"].isin(truth["particle_id_1"])
-    | particles["particle_id"].isin(truth["particle_id_2"])
-]
-
-# Plot the distribution of the particles
-# plot_feature_distributions(particles)
-
 
 def plot_feature_distribution(particles, truth_particles):
     for i, feature_name in enumerate(particles.columns):
@@ -305,12 +282,17 @@ def plot_feature_distribution(particles, truth_particles):
         plt.show()
 
 
+# # Load the particles
+# particles = load_csv_data(
+#     file_name="event000000101-hard-cut-particles.csv", directory="csv"
+# )
+
+
+# Plot the distribution of the particles
+# plot_feature_distributions(particles)
 # plot_feature_distribution(particles, truth_particles)
 
-# Assign particle information to the truth
-truth_particles = truth.merge(
-    particles, left_on="particle_id", right_on="particle_id", suffixes=("", "_particle")
-)
+truth_particles = load_event(event_id=event)
 
 # Compute r, phi, z for the truth particles
 truth_particles["r"] = np.sqrt(truth_particles["x"] ** 2 + truth_particles["y"] ** 2)
