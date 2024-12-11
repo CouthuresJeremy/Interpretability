@@ -533,8 +533,18 @@ plot_information_coverage(event, df_information_coverage)
 
 # Compute mutual information for all neuron outputs in a layer and save them into a CSV file
 def compute_mutual_information(event, neuron_activations, df_continuous):
-    mutual_information_df = pd.DataFrame()
+    """
+    Compute mutual information for all neuron outputs in a layer and save them into a CSV file.
 
+    Parameters:
+    event (int): The event number.
+    neuron_activations (dict): Dictionary containing neuron activations for each layer.
+    df_continuous (pd.DataFrame): DataFrame containing continuous features.
+
+    Returns:
+        None
+    """
+    mutual_information_df = pd.DataFrame()
     # Start from the last layer
     reversed_neuron_activations = list(neuron_activations.keys())[::-1]
     for layer_index, layer in enumerate(reversed_neuron_activations):
