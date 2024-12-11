@@ -445,7 +445,7 @@ def entropy_discrete(y):
 
 def compute_information_coverage(event, df_continuous):
     # Load the data
-    csv_dir = Path(".")
+    csv_dir = Path("./conditional_entropy")
     csv_files = list(csv_dir.glob("mutual_information_event000000101_layer*.csv"))
 
     # Read all the csv files and concatenate them
