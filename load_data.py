@@ -25,6 +25,40 @@ def scale_data(df, scales=[1000, 3.14, 1000]):
     return df_scaled
 
 
+def load_event(event_id=101, verbose=False):
+    # Load the particles
+    particles = load_csv_data(
+        file_name=f"event{event_id:09d}-hard-cut-particles.csv", directory="csv"
+    )
+
+    # Load the truth
+    truth = load_csv_data(
+        file_name=f"event{event_id:09d}-hard-cut-truth.csv", directory="csv"
+    )
+
+    # Count the number of particle_id_1 != particle_id_2
+    if verbose:
+        print(truth.shape)
+        print(truth[truth["particle_id_1"] != truth["particle_id_2"]].shape)
+
+    # Get particles corresponding to the truth
+    truth_particle_ids = truth["particle_id"].unique()
+    truth_particles = particles[
+        particles["particle_id"].isin(truth_particle_ids)
+        | particles["particle_id"].isin(truth["particle_id_1"])
+        | particles["particle_id"].isin(truth["particle_id_2"])
+    ]
+
+    # Assign particle information to the truth
+    truth_particles = truth.merge(
+        particles,
+        left_on="particle_id",
+        right_on="particle_id",
+        suffixes=("", "_particle"),
+    )
+    return truth_particles
+
+
 # Convert r, phi and z to float32 for the matching
 def match_input_data(truth_particles, load_data=True):
     # Load the file if it exists
