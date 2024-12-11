@@ -25,7 +25,7 @@ def scale_data(df, scales=[1000, 3.14, 1000]):
     return df_scaled
 
 
-def load_event(event_id=101, verbose=False):
+def load_event_data(event_id=101, verbose=False):
     # Load the particles
     particles = load_csv_data(
         file_name=f"event{event_id:09d}-hard-cut-particles.csv", directory="csv"

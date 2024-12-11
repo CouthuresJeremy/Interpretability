@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 from sklearn.neighbors import KernelDensity
 from sklearn.feature_selection import mutual_info_regression
-from load_data import match_input_data, load_csv_data, load_event
+from load_data import match_input_data, load_csv_data, load_event_data
 
 event = 101
 
@@ -292,7 +292,7 @@ def plot_feature_distribution(particles, truth_particles):
 # plot_feature_distributions(particles)
 # plot_feature_distribution(particles, truth_particles)
 
-truth_particles = load_event(event_id=event)
+truth_particles = load_event_data(event_id=event)
 
 # Compute r, phi, z for the truth particles
 truth_particles["r"] = np.sqrt(truth_particles["x"] ** 2 + truth_particles["y"] ** 2)
