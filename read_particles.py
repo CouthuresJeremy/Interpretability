@@ -421,7 +421,7 @@ truth_particles["r"] = np.sqrt(truth_particles["x"] ** 2 + truth_particles["y"] 
 truth_particles["phi"] = np.arctan2(truth_particles["y"], truth_particles["x"])
 truth_particles["z"] = truth_particles["z"]
 
-input_df = match_input_data(truth_particles)
+input_df = match_input_data(truth_particles, event_id=event)
 
 # Add various coordinate transformations
 input_df = add_coordinate_transformations(input_df)
