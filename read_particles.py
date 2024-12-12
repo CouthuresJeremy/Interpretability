@@ -35,6 +35,87 @@ def get_layer_parameters(state_dict, layer):
     return neurons_weights, neurons_biases
 
 
+def drop_wrong_activation_assignement(
+    input_df, duplicated_activations_1, verbose=False
+):
+    from load_data import scale_data
+
+    # Load the weights and biases for the first layer
+    model_state_dict = load_model()
+
+    layer = 1
+
+    neurons_weights, neurons_biases = get_layer_parameters(model_state_dict, layer)
+
+    # Calculate the neuron's output for each hit
+    hit_coordinates = input_df[["r", "phi", "z"]]
+
+    # Scale the hit coordinates
+    hit_coordinates = scale_data(hit_coordinates, scales=[1 / 1000, 1 / 3.14, 1 / 1000])
+    # Change data type to float32
+    hit_coordinates["r"] = hit_coordinates["r"].astype("float32")
+    hit_coordinates["phi"] = hit_coordinates["phi"].astype("float32")
+    hit_coordinates["z"] = hit_coordinates["z"].astype("float32")
+
+    # Calculate the neuron outputs
+    neuron_outputs = calculate_neuron_output(
+        hit_coordinates, neurons_weights, neurons_biases
+    )
+    dropped_indices = []
+    print(f"{duplicated_activations_1.shape = }")
+    print(f"{neuron_outputs.shape = }")
+    # Compare the neuron outputs with the activations
+    for i in range(neuron_outputs.shape[1]):
+        if verbose:
+            print(f"Neuron {i}")
+        # # Check if the activation value can be found in the neuron outputs
+        # for j in range(neuron_outputs.shape[0] - 1, -1, -1):
+        #     if j in dropped_indices:
+        #         continue
+        #     same_index = np.where(
+        #         neuron_outputs[j, i] == duplicated_activations_1[i, :]
+        #     )
+        #     if len(same_index[0]) == 0 or not j in same_index[0]:
+        #         # Remove the row from the duplicated_activations_1
+        #         print(f"{duplicated_activations_1.shape = } {j = }")
+        #         duplicated_activations_1 = np.delete(
+        #             duplicated_activations_1, j, axis=1
+        #         )
+        #         # Remove the row from the input_df
+        #         input_df = input_df.drop(j)
+        #         dropped_indices.append(j)
+
+        # Get all the indices where the neuron output is not the same as the activation
+        # same_index = np.where(neuron_outputs[:, i] == duplicated_activations_1[i, :])
+        dropping_indices = np.where(
+            neuron_outputs[:, i] != duplicated_activations_1[i, :]
+        )
+        if verbose:
+            print(f"{dropping_indices = }")
+        dropping_indices_clean = []
+        for dropping_index in list(dropping_indices[0]):
+            if dropping_index not in dropped_indices:
+                dropping_indices_clean.append(dropping_index)
+                if verbose:
+                    print(f"Dropping {dropping_index}")
+
+        dropped_indices.extend(dropping_indices_clean)
+        if dropping_indices_clean:
+            # Remove the row from the duplicated_activations_1
+            duplicated_activations_1 = np.delete(
+                duplicated_activations_1, dropping_indices_clean, axis=1
+            )
+            # Remove the row from the input_df
+            input_df = input_df.drop(dropping_indices_clean)
+
+            # Remove the row from the neuron_outputs
+            neuron_outputs = np.delete(neuron_outputs, dropping_indices_clean, axis=0)
+        # print(f"{duplicated_activations_1.shape = } {i = }")
+        # print(f"{input_df.shape = } {i = }")
+
+    return input_df, duplicated_activations_1, dropped_indices
+
+
 def verify_activation_assignement(input_df, duplicated_activations_1, verbose=False):
     from load_data import scale_data
 
@@ -93,8 +174,22 @@ def handle_shared_hits(input_df, neuron_activations):
         activations_1_df.iloc[input_df_keys].reset_index(drop=True).T
     ).to_numpy()
 
-    # Verify that the assignment is correct
-    verify_activation_assignement(input_df, duplicated_activations_1)
+    dropped_indices = []
+
+    try:
+        # Verify that the assignment is correct
+        verify_activation_assignement(input_df, duplicated_activations_1)
+    except AssertionError as e:
+        input_df, duplicated_activations_1, dropped_indices = (
+            drop_wrong_activation_assignement(input_df, duplicated_activations_1)
+        )
+
+        print(f"Reverifying assignement")
+        # Verify that the assignment is correct
+        verify_activation_assignement(input_df, duplicated_activations_1)
+
+        print(f"{input_df_keys.shape = }")
+        print(f"{input_df_keys = }")
 
     for layer in neuron_activations:
         # Add the duplicated activations to the neuron activations
@@ -102,10 +197,27 @@ def handle_shared_hits(input_df, neuron_activations):
         duplicated_activations = (
             neuron_activations_layer_df.iloc[input_df_keys].reset_index(drop=True).T
         ).to_numpy()
+
+        # Keep only the rows that are in the input_df
+        duplicated_activations = np.delete(
+            duplicated_activations, dropped_indices, axis=1
+        )
+
+        # print(f"{duplicated_activations.shape = }")
+
         neuron_activations[layer] = torch.tensor(duplicated_activations)
         # print(neuron_activations[layer].shape)
 
-    return neuron_activations
+    if dropped_indices:
+        print(f"{len(dropped_indices)} hits were dropped")
+
+        activations_1_df = pd.DataFrame(neuron_activations[keys[0]].T)
+        duplicated_activations_1 = activations_1_df.reset_index(drop=True).T.to_numpy()
+
+        # Verify that the assignment is correct
+        verify_activation_assignement(input_df, duplicated_activations_1)
+
+    return neuron_activations, input_df
 
 
 def entropy_1D(df_continuous, feature):
@@ -492,7 +604,7 @@ for event in event_list:
     # Read activations
     neuron_activations = load_event_activations(event_id=event)
 
-    neuron_activations = handle_shared_hits(input_df, neuron_activations)
+    neuron_activations, input_df = handle_shared_hits(input_df, neuron_activations)
 
     all_input_df = pd.concat([all_input_df, input_df])
     for key in neuron_activations:
