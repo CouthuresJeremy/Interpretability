@@ -25,10 +25,11 @@ def scale_data(df, scales=[1000, 3.14, 1000]):
     return df_scaled
 
 
-def load_event_data(event_id=101, verbose=False):
+def load_event_data(event_id=101, verbose=False, input_data_dir="truth_input_data"):
     # Load the particles
     particles = load_csv_data(
-        file_name=f"event{event_id:09d}-hard-cut-particles.csv", directory="csv"
+        file_name=f"event{event_id:09d}-hard-cut-particles.csv",
+        directory=input_data_dir,
     )
 
     import numpy as np
@@ -43,7 +44,7 @@ def load_event_data(event_id=101, verbose=False):
 
     # Load the truth
     truth = load_csv_data(
-        file_name=f"event{event_id:09d}-hard-cut-truth.csv", directory="csv"
+        file_name=f"event{event_id:09d}-hard-cut-truth.csv", directory=input_data_dir
     )
 
     # Count the number of particle_id_1 != particle_id_2
