@@ -479,6 +479,18 @@ plt.show()
 df_continuous = input_df.select_dtypes(include=[np.number])
 
 
+# # Remove duplicates [r, phi, z] in feature
+# df_continuous = df_continuous.drop_duplicates(
+#     subset=["r", "phi", "z"], ignore_index=True
+# )
+
+# Add 3 random variables for each hit
+# uniform, normal, poisson
+df_continuous["uniform_hit"] = np.random.uniform(0, 1, size=(df_continuous.shape[0], 1))
+df_continuous["normal_hit"] = np.random.normal(0, 1, size=(df_continuous.shape[0], 1))
+df_continuous["poisson_hit"] = np.random.poisson(1, size=(df_continuous.shape[0], 1))
+
+
 def entropy_discrete(y):
     """
     Compute entropy for a discrete variable Y.
