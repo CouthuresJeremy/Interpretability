@@ -92,9 +92,9 @@ def load_event_activations(event_id=101, verbose=False):
 
 
 # Convert r, phi and z to float32 for the matching
-def match_input_data(truth_particles, load_data=True):
+def match_input_data(truth_particles, load_data=True, event_id=101):
     # Load the file if it exists
-    mathed_file = Path("input_data_event000000101_matched.csv")
+    mathed_file = Path(f"input_data_event{event_id:09d}_matched.csv")
     if load_data and mathed_file.exists():
         df_scaled = pd.read_csv(mathed_file)
         return df_scaled
@@ -110,12 +110,12 @@ def match_input_data(truth_particles, load_data=True):
 
     # Save the unscaled truth particles to csv
     truth_particles_unscaled.to_csv(
-        "data/event000000101-truth-particles-unscaled.csv", index=False
+        f"data/event{event_id:09d}-truth-particles-unscaled.csv", index=False
     )
 
     # Reload the unscaled truth particles
     truth_particles_unscaled = pd.read_csv(
-        "data/event000000101-truth-particles-unscaled.csv"
+        f"data/event{event_id:09d}-truth-particles-unscaled.csv"
     )
 
     # Rescale the truth particles
@@ -124,7 +124,7 @@ def match_input_data(truth_particles, load_data=True):
     truth_particles_unscaled["z"] = truth_particles_unscaled["z"] * 1000
 
     # Load the input data
-    df = load_csv_data(file_name="input_data_event000000101.csv", directory="csv")
+    df = load_csv_data(file_name=f"input_data_event{event_id:09d}.csv", directory="csv")
     df.columns = ["r", "phi", "z"]
     # print(df.head())
     print(df.shape)
