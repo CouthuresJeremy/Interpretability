@@ -555,8 +555,9 @@ def compute_information_coverage(event, df_continuous):
 
     # Save the information coverage to a CSV file
     df_information_coverage.to_csv(
-        f"information_coverage_event{event:09d}.csv", index=False
+        csv_dir / f"information_coverage_event{event:09d}.csv", index=False
     )
+    print(df_information_coverage.max(axis=0))
 
     return df_information_coverage
 
