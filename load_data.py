@@ -31,6 +31,16 @@ def load_event_data(event_id=101, verbose=False):
         file_name=f"event{event_id:09d}-hard-cut-particles.csv", directory="csv"
     )
 
+    import numpy as np
+
+    # Add 3 random variables for each particles
+    # uniform, normal, poisson
+    particles["uniform_particle"] = np.random.uniform(
+        0, 1, size=(particles.shape[0], 1)
+    )
+    particles["normal_particle"] = np.random.normal(0, 1, size=(particles.shape[0], 1))
+    particles["poisson_particle"] = np.random.poisson(1, size=(particles.shape[0], 1))
+
     # Load the truth
     truth = load_csv_data(
         file_name=f"event{event_id:09d}-hard-cut-truth.csv", directory="csv"
