@@ -94,6 +94,46 @@ def handle_shared_hits(input_df, neuron_activations):
     return neuron_activations
 
 
+def entropy_1D(df_continuous, feature):
+    # Check if the feature is discrete integer
+    y_is_discrete = (
+        df_continuous[feature].abs() == df_continuous[feature].abs().astype(int)
+    ).all()
+
+    from conditional_entropy import entropy_discrete
+
+    if y_is_discrete:
+        entropy_feature = entropy_discrete(df_continuous[feature].to_numpy())
+        print(f"Feature: {feature}; Entropy({feature}): {entropy_feature}")
+        # Compute the mutual information between the feature and itself
+        entropy_feature_mutual = mutual_info_regression(
+            df_continuous[feature].to_numpy().reshape(-1, 1),
+            df_continuous[feature].to_numpy(),
+            random_state=42,
+            discrete_features=True,
+        )
+        print(f"Entropy({feature}) mutual: {entropy_feature_mutual}")
+    else:
+        # Compute the mutual information between the feature and itself
+        entropy_feature = mutual_info_regression(
+            df_continuous[feature].to_numpy().reshape(-1, 1),
+            df_continuous[feature].to_numpy(),
+            random_state=42,
+        )
+
+        # Mutual_info_regression is scale invariant!
+
+        # Check the scale dependance of mutual_info_regression (compare with 2* scale)
+        entropy_feature_scaled = mutual_info_regression(
+            5000 * (df_continuous[feature].to_numpy().reshape(-1, 1)),
+            5000 * (df_continuous[feature].to_numpy()),
+            random_state=42,
+        )
+        print(f"Entropy({feature}) (mutual): {entropy_feature}")
+        print(f"Entropy({feature}) (mutual) (scaled): {entropy_feature_scaled}")
+    return entropy_feature
+
+
 # Calculate mutual information between two features
 def mutual_information(df, feature1, feature2):
     # Calculate the joint probability distribution
@@ -509,16 +549,9 @@ def compute_information_coverage(event, df_continuous):
     df_information_coverage["layer"] = df_mutual["layer"]
     df_information_coverage["neuron"] = df_mutual["neuron"]
     for feature in df_mutual.columns[2:]:
-        # Compute the mutual information between the feature and itself
-        mutual_information_values = mutual_info_regression(
-            df_continuous[feature].to_numpy().reshape(-1, 1),
-            df_continuous[feature].to_numpy(),
-            random_state=42,
-        )
+        entropy_feature = entropy_1D(df_continuous, feature)
 
-        df_information_coverage[feature] = (
-            df_mutual[feature] / mutual_information_values
-        )
+        df_information_coverage[feature] = df_mutual[feature] / entropy_feature
 
     # Save the information coverage to a CSV file
     df_information_coverage.to_csv(
