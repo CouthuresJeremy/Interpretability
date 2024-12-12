@@ -35,7 +35,7 @@ def get_layer_parameters(state_dict, layer):
     return neurons_weights, neurons_biases
 
 
-def verify_activation_assignement(input_df, duplicated_activations_1):
+def verify_activation_assignement(input_df, duplicated_activations_1, verbose=False):
     from load_data import scale_data
 
     # Load the weights and biases for the first layer
@@ -50,6 +50,10 @@ def verify_activation_assignement(input_df, duplicated_activations_1):
 
     # Scale the hit coordinates
     hit_coordinates = scale_data(hit_coordinates, scales=[1 / 1000, 1 / 3.14, 1 / 1000])
+    # Change data type to float32
+    hit_coordinates["r"] = hit_coordinates["r"].astype("float32")
+    hit_coordinates["phi"] = hit_coordinates["phi"].astype("float32")
+    hit_coordinates["z"] = hit_coordinates["z"].astype("float32")
 
     # Calculate the neuron outputs
     neuron_outputs = calculate_neuron_output(
@@ -57,9 +61,19 @@ def verify_activation_assignement(input_df, duplicated_activations_1):
     )
     # Compare the neuron outputs with the activations
     for i in range(neuron_outputs.shape[1]):
-        assert np.allclose(
-            neuron_outputs[:, i], duplicated_activations_1[i, :], atol=1e-6
-        ), f"Neuron {i} is wrong {neuron_outputs[:, i] = } {duplicated_activations_1[i, :] = }"
+        if verbose:
+            print(f"Neuron {i}")
+            # Check if the activation value can be found in the neuron outputs
+            for j in range(neuron_outputs.shape[0]):
+                same_index = np.where(
+                    neuron_outputs[j, i] == duplicated_activations_1[i, :]
+                )
+                assert len(same_index[0]) >= 1, f"{same_index = }"
+                assert j in same_index[0], f"{same_index = } {j = }"
+
+        assert (
+            neuron_outputs[:, i] == duplicated_activations_1[i, :]
+        ).all(), f"Neuron {i} is wrong"
 
 
 def handle_shared_hits(input_df, neuron_activations):
