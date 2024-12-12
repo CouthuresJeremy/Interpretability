@@ -428,27 +428,6 @@ def plot_feature_distribution(particles, truth_particles):
 # plot_feature_distributions(particles)
 # plot_feature_distribution(particles, truth_particles)
 
-truth_particles = load_event_data(event_id=event)
-
-# Compute r, phi, z for the truth particles
-truth_particles["r"] = np.sqrt(truth_particles["x"] ** 2 + truth_particles["y"] ** 2)
-truth_particles["phi"] = np.arctan2(truth_particles["y"], truth_particles["x"])
-truth_particles["z"] = truth_particles["z"]
-
-input_df = match_input_data(truth_particles, event_id=event)
-
-# Add various coordinate transformations
-input_df = add_coordinate_transformations(input_df)
-
-
-# Map particle_id to [0..N]
-particle_id_map = {
-    particle_id: i for i, particle_id in enumerate(input_df["particle_id"].unique())
-}
-input_df["particle_id_mapped"] = input_df["particle_id"].map(particle_id_map)
-
-
-n_hits = input_df.shape[0]
 # print(input_df[["eta", "phi"]].to_numpy().reshape(n_hits, 2).shape)
 # print(input_df[["eta", "phi"]].to_numpy().reshape(n_hits, 2))
 
@@ -485,14 +464,67 @@ n_hits = input_df.shape[0]
 # plt.ylabel("r")
 # plt.show()
 
-# Read activations
-neuron_activations = load_event_activations(event_id=event)
-neuron_activations = handle_shared_hits(input_df, neuron_activations)
+event_list = [101, 103, 104, 105, 106, 107, 109]
+event_list = [101, 103, 104, 105, 106, 107]
+# event_list = [101, 104, 107]
+# event_list = [101, 103, 104, 107]
+# Dataframe to store the truth particles for all events
+all_input_df = pd.DataFrame()
+all_neuron_activations = {}
+for event in event_list:
+    print(f"Event {event}")
+    truth_particles = load_event_data(event_id=event, verbose=True)
+
+    # Compute r, phi, z for the truth particles
+    truth_particles["r"] = np.sqrt(
+        truth_particles["x"] ** 2 + truth_particles["y"] ** 2
+    )
+    truth_particles["phi"] = np.arctan2(truth_particles["y"], truth_particles["x"])
+    truth_particles["z"] = truth_particles["z"]
+
+    input_df = match_input_data(truth_particles, event_id=event, load_data=False)
+    # input_df = truth_particles
+    print(input_df.shape)
+
+    # Add various coordinate transformations
+    input_df = add_coordinate_transformations(input_df)
+
+    # Read activations
+    neuron_activations = load_event_activations(event_id=event)
+
+    neuron_activations = handle_shared_hits(input_df, neuron_activations)
+
+    all_input_df = pd.concat([all_input_df, input_df])
+    for key in neuron_activations:
+        if key not in all_neuron_activations:
+            all_neuron_activations[key] = neuron_activations[key]
+        else:
+            all_neuron_activations[key] = torch.cat(
+                (all_neuron_activations[key], neuron_activations[key]), dim=1
+            )
+
+n_hits = all_input_df.shape[0]
+
+neuron_activations = all_neuron_activations
+input_df = all_input_df
+
+# Map particle_id to [0..N]
+particle_id_map = {
+    particle_id: i for i, particle_id in enumerate(input_df["particle_id"].unique())
+}
+input_df["particle_id_mapped"] = input_df["particle_id"].map(particle_id_map)
 
 keys = list(neuron_activations)
+# Remove duplicate hits
+print(all_input_df.shape)
+# all_input_df = all_input_df.drop_duplicates(subset=["r", "phi", "z"], ignore_index=True)
+print(all_input_df.shape)
+print(all_neuron_activations[keys[0]].shape)
+verify_activation_assignement(all_input_df, all_neuron_activations[keys[0]].numpy())
 activations_1 = neuron_activations[keys[0]].numpy()
 activations_3 = neuron_activations[keys[2]].numpy()
 activations_4 = neuron_activations[keys[3]].numpy()
+event = 0
 
 # print(neuron_935_weights.T.shape)
 
