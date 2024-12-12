@@ -62,6 +62,38 @@ def verify_activation_assignement(input_df, duplicated_activations_1):
         ), f"Neuron {i} is wrong {neuron_outputs[:, i] = } {duplicated_activations_1[i, :] = }"
 
 
+def handle_shared_hits(input_df, neuron_activations):
+    # For each duplicate [r, phi, z] in feature, assign the same neuron output
+    # Hit j is assigned to activation_1[:, j]
+    # Create a unique key for each unique row
+    # Convert each row to a tuple for factorization
+    input_df_tuples = list(
+        input_df[["r", "phi", "z"]].itertuples(index=False, name=None)
+    )
+    input_df_keys, unique_indices = pd.factorize(input_df_tuples, sort=False)
+
+    keys = list(neuron_activations)
+
+    activations_1_df = pd.DataFrame(neuron_activations[keys[0]].T)
+    duplicated_activations_1 = (
+        activations_1_df.iloc[input_df_keys].reset_index(drop=True).T
+    ).to_numpy()
+
+    # Verify that the assignment is correct
+    verify_activation_assignement(input_df, duplicated_activations_1)
+
+    for layer in neuron_activations:
+        # Add the duplicated activations to the neuron activations
+        neuron_activations_layer_df = pd.DataFrame(neuron_activations[layer].T)
+        duplicated_activations = (
+            neuron_activations_layer_df.iloc[input_df_keys].reset_index(drop=True).T
+        ).to_numpy()
+        neuron_activations[layer] = torch.tensor(duplicated_activations)
+        # print(neuron_activations[layer].shape)
+
+    return neuron_activations
+
+
 # Calculate mutual information between two features
 def mutual_information(df, feature1, feature2):
     # Calculate the joint probability distribution
@@ -401,38 +433,13 @@ n_hits = input_df.shape[0]
 
 # Read activations
 neuron_activations = load_event_activations(event_id=event)
+neuron_activations = handle_shared_hits(input_df, neuron_activations)
 
 keys = list(neuron_activations)
-
 activations_1 = neuron_activations[keys[0]].numpy()
 activations_3 = neuron_activations[keys[2]].numpy()
 activations_4 = neuron_activations[keys[3]].numpy()
 
-
-# For each duplicate [r, phi, z] in feature, assign the same neuron output
-# Hit j is assigned to activation_1[:, j]
-# Create a unique key for each unique row
-# Convert each row to a tuple for factorization
-input_df_tuples = list(input_df[["r", "phi", "z"]].itertuples(index=False, name=None))
-input_df_keys, unique_indices = pd.factorize(input_df_tuples, sort=False)
-
-activations_1_df = pd.DataFrame(neuron_activations[keys[0]].T)
-duplicated_activations_1 = (
-    activations_1_df.iloc[input_df_keys].reset_index(drop=True).T
-).to_numpy()
-
-
-# Verify that the assignment is correct
-verify_activation_assignement(input_df, duplicated_activations_1)
-
-for layer in neuron_activations:
-    # Add the duplicated activations to the neuron activations
-    neuron_activations_layer_df = pd.DataFrame(neuron_activations[layer].T)
-    duplicated_activations = (
-        neuron_activations_layer_df.iloc[input_df_keys].reset_index(drop=True).T
-    ).to_numpy()
-    neuron_activations[layer] = torch.tensor(duplicated_activations)
-    # print(neuron_activations[layer].shape)
 # print(neuron_935_weights.T.shape)
 
 # Do input*weights + biases
