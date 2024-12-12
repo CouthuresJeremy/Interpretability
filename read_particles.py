@@ -17,6 +17,23 @@ from load_data import (
 event = 101
 
 
+def get_layer_parameters(state_dict, layer):
+    state_dict_keys = list(state_dict.keys())
+    weights_key = state_dict_keys[(layer // 3) * 2]
+    biases_key = state_dict_keys[(layer // 3) * 2 + 1]
+
+    assert weights_key.split(".")[1] == str(
+        layer - 1
+    ), f"weights_key: {weights_key} layer: {layer}"
+    assert biases_key.split(".")[1] == str(
+        layer - 1
+    ), f"biases_key: {biases_key} layer: {layer}"
+
+    neurons_weights = state_dict[weights_key].numpy()
+    neurons_biases = state_dict[biases_key].numpy()
+    return neurons_weights, neurons_biases
+
+
 # Calculate mutual information between two features
 def mutual_information(df, feature1, feature2):
     # Calculate the joint probability distribution
@@ -890,24 +907,8 @@ layer_name = keys[layer - 1]
 # layer_name_activations = keys[layer - 2]
 
 
-def get_layer_parameters(state_dict, state_dict_keys, layer):
-    weights_key = state_dict_keys[(layer // 3) * 2]
-    biases_key = state_dict_keys[(layer // 3) * 2 + 1]
-
-    assert weights_key.split(".")[1] == str(
-        layer - 1
-    ), f"weights_key: {weights_key} layer: {layer}"
-    assert biases_key.split(".")[1] == str(
-        layer - 1
-    ), f"biases_key: {biases_key} layer: {layer}"
-
-    neurons_weights = state_dict[weights_key].numpy()
-    neurons_biases = state_dict[biases_key].numpy()
-    return neurons_weights, neurons_biases
-
-
 # neurons_weights, neurons_biases = get_layer_parameters(
-#     state_dict, state_dict_keys, layer
+#     state_dict, layer
 # )
 
 # activations = neuron_activations[layer_name_activations].numpy()
