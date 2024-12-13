@@ -93,7 +93,7 @@ def load_event_activations(event_id=101, verbose=False):
 
 
 # Convert r, phi and z to float32 for the matching
-def match_input_data(truth_particles, load_data=True, event_id=101):
+def match_input_data(truth_particles, load_data=True, event_id=101, all_data=False):
     # Load the file if it exists
     mathed_file = Path(f"input_data_event{event_id:09d}_matched.csv")
     if load_data and mathed_file.exists():
@@ -144,25 +144,32 @@ def match_input_data(truth_particles, load_data=True, event_id=101):
         df_scaled.duplicated(subset=["r", "phi", "z"]).sum() == 0
     ), f"{df_scaled.duplicated(subset=['r', 'phi', 'z']).sum() = }"
 
-    print(f"{df_scaled.shape = } {truth_particles_unscaled.shape = }")
+    if not all_data:
+        how = "left"
+        validate = "one_to_one"
+        indicator = True
 
-    truth_particles_unscaled.drop_duplicates(subset=["r", "phi", "z"], inplace=True)
-
-    print(f"{df_scaled.shape = } {truth_particles_unscaled.shape = }")
+        print(f"{df_scaled.shape = } {truth_particles_unscaled.shape = }")
+        truth_particles_unscaled.drop_duplicates(subset=["r", "phi", "z"], inplace=True)
+        print(f"{df_scaled.shape = } {truth_particles_unscaled.shape = }")
+    else:
+        how = "inner"
+        validate = "one_to_many"
+        indicator = False
 
     # Try to match (r, phi, z) from the truth to the input data
     df_scaled = df_scaled.merge(
         truth_particles_unscaled,
-        how="left",
+        how=how,
         on=["r", "phi", "z"],
         suffixes=("", "_truth"),
-        # validate="one_to_many",
-        indicator=True,
-        validate="one_to_one",
+        indicator=indicator,
+        validate=validate,
     )
 
-    # Check the indicator
-    print(df_scaled["_merge"].value_counts())
+    if not all_data:
+        # Check the indicator
+        print(df_scaled["_merge"].value_counts())
 
     # Count duplicated [r, phi, z] in the input data
     print(df_scaled.duplicated(subset=["r", "phi", "z"]).sum())
