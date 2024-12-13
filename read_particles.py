@@ -116,6 +116,72 @@ def drop_wrong_activation_assignement(
     return input_df, duplicated_activations_1, dropped_indices
 
 
+def check_2(event_id):
+    # Reload to make sure the data is saved correctly
+    activations = torch.load(
+        f"activations/activations_event{event_id:09d}.pt",
+        map_location=torch.device("cpu"),
+    )
+
+    # # Compute manually the activations for the first layer and compare with the saved activations
+    # first_layer = self.network[0]
+    # first_layer_name = f"layer_0_{first_layer.__class__.__name__}"
+    # Load data
+    input_df = load_csv_data(
+        file_name=f"input_data_event{event_id:09d}.csv", directory="input_data"
+    )
+    # Change to correct device
+    input_tensor = torch.tensor(input_df.values).float()
+    # first_layer_activations = first_layer(input_tensor)
+    # # Compare exact values
+    # print(
+    #     f"Comparing first layer activations: {torch.allclose(first_layer_activations, activations[first_layer_name], atol=0) = }"
+    # )
+    # assert torch.allclose(
+    #     first_layer_activations, activations[first_layer_name], atol=0
+    # )
+    first_layer_name = list(activations)[0]
+    print(f"{first_layer_name = }")
+
+    # Compare with cpu computation
+    cpu_first_layer = activations[first_layer_name].cpu()
+    # Get the weights and biases of the model
+    model_path = "model/best--f1=0.313180-epoch=89.ckpt"
+    model = torch.load(model_path, map_location=torch.device("cpu"))
+
+    model_keys = list(model["state_dict"])
+    print(model_keys)
+    weights, biases = (
+        model["state_dict"][model_keys[0]],
+        model["state_dict"][model_keys[1]],
+    )
+    print(f"{weights.shape = } {biases.shape = }")
+    # Calculate the neuron outputs
+    input_tensor = input_tensor.cpu()
+    weights = weights.cpu()
+    biases = biases.cpu()
+    activations_computed = torch.matmul(input_tensor, weights.T) + biases
+    # Compare the activations
+    print(
+        f"Comparing first layer activations: {torch.allclose(activations_computed, cpu_first_layer, atol=0) = }"
+    )
+    assert torch.allclose(activations_computed, cpu_first_layer, atol=0)
+
+    # Compare with numpy computation
+    cpu_first_layer_np = cpu_first_layer.numpy()
+    input_tensor_np = input_tensor.numpy()
+    weights_np = weights.numpy()
+    biases_np = biases.numpy()
+    import numpy as np
+
+    activations_computed_np = np.matmul(input_tensor_np, weights_np.T) + biases_np
+    print(
+        f"Comparing first layer activations: {np.allclose(activations_computed_np, cpu_first_layer_np, atol=0) = }"
+    )
+    assert np.allclose(activations_computed_np, cpu_first_layer_np, atol=0)
+    assert (activations_computed_np == cpu_first_layer_np).all()
+
+
 def verify_activation_assignement(input_df, duplicated_activations_1, verbose=False):
     from load_data import scale_data
 
@@ -136,6 +202,9 @@ def verify_activation_assignement(input_df, duplicated_activations_1, verbose=Fa
     hit_coordinates["phi"] = hit_coordinates["phi"].astype("float32")
     hit_coordinates["z"] = hit_coordinates["z"].astype("float32")
 
+    neurons_weights = neurons_weights.astype("float32")
+    neurons_biases = neurons_biases.astype("float32")
+
     # Calculate the neuron outputs
     neuron_outputs = calculate_neuron_output(
         hit_coordinates, neurons_weights, neurons_biases
@@ -149,12 +218,14 @@ def verify_activation_assignement(input_df, duplicated_activations_1, verbose=Fa
                 same_index = np.where(
                     neuron_outputs[j, i] == duplicated_activations_1[i, :]
                 )
-                assert len(same_index[0]) >= 1, f"{same_index = }"
+                assert (
+                    len(same_index[0]) >= 1
+                ), f"{same_index = } {np.abs(neuron_outputs[j, i] - duplicated_activations_1[i, :]).min() = }"
                 assert j in same_index[0], f"{same_index = } {j = }"
 
         assert (
             neuron_outputs[:, i] == duplicated_activations_1[i, :]
-        ).all(), f"Neuron {i} is wrong"
+        ).all(), f"Neuron {i} is wrong {(neuron_outputs[:, i] - duplicated_activations_1[i, :]).max() = }"
 
 
 def handle_shared_hits(input_df, neuron_activations):
@@ -186,7 +257,8 @@ def handle_shared_hits(input_df, neuron_activations):
 
         print(f"Reverifying assignement")
         # Verify that the assignment is correct
-        verify_activation_assignement(input_df, duplicated_activations_1)
+        # verify_activation_assignement(input_df, duplicated_activations_1, verbose=True)
+        verify_activation_assignement(input_df, duplicated_activations_1, verbose=False)
 
         print(f"{input_df_keys.shape = }")
         print(f"{input_df_keys = }")
@@ -576,15 +648,93 @@ def plot_feature_distribution(particles, truth_particles):
 # plt.ylabel("r")
 # plt.show()
 
+
+def remove_invalid_match(input_df, neuron_activations, n_hits):
+    # Make sure the nan rows are the ones with '_merge' column as 'left_only'
+    # print(input_df.loc[input_df["_merge"] == "left_only"])
+    # print(input_df.loc[input_df["_merge"] == "left_only"]["particle_id"].isna())
+    # print(input_df.loc[input_df["_merge"] == "left_only"])
+    assert (
+        input_df.loc[input_df["_merge"] == "left_only"]["particle_id"].isna().all()
+        == True
+    )
+    n_hits = input_df.shape[0]
+
+    # Bad indices
+    bad_indices = input_df.loc[input_df["_merge"] == "left_only"].index
+    print(f"{bad_indices = }")
+
+    def th_delete(tensor, indices):
+        mask = torch.ones(tensor.numel(), dtype=torch.bool)
+        mask = mask.reshape(tensor.shape)
+        mask[:, indices] = False
+        return tensor[mask].reshape(tensor.shape[0], -1)
+
+    # def th_delete(tensor, indices):
+    #     mask = torch.ones(tensor.numel(), dtype=torch.bool)
+    #     mask = mask.reshape(tensor.shape)
+    #     mask[:, indices] = False
+    #     return tensor[mask]
+
+    # Remove the bad indices
+    # print(f"{bad_indices.shape = }")
+    # print(f"{input_df.shape = }")
+    # input_df.dropna(subset=["particle_id"], inplace=True)
+    # print(f"{input_df.shape = }")
+    input_df.drop(bad_indices, inplace=True)
+    assert input_df.shape[0] == n_hits - bad_indices.shape[0], f"{input_df.shape = }"
+
+    # Make sure the bad indices are not in the df
+    assert (
+        input_df.loc[input_df["_merge"] == "left_only"].shape[0] == 0
+    ), f"{input_df.loc[input_df['_merge'] == 'left_only'].shape = }"
+
+    # Reverse sort the bad indices
+    # bad_indices = np.sort(bad_indices)[::-1]
+    # bad_indices = np.sort(bad_indices)[::-1]
+    for key in neuron_activations:
+        neuron_activations[key] = neuron_activations[key][:, input_df.index.to_numpy()]
+        # print(f"{bad_indices = }")
+        # neuron_activations[key] = th_delete(neuron_activations[key], bad_indices)
+        # for bad_index in bad_indices:
+        #     neuron_activations[key] = torch.cat(
+        #         (
+        #             neuron_activations[key][:, :bad_index],
+        #             neuron_activations[key][:, bad_index + 1 :],
+        #         ),
+        #         dim=1,
+        #     )
+
+    # # Remove the bad indices
+    # print(f"{bad_indices.shape = }")
+    # print(f"{input_df.shape = }")
+    # input_df.dropna(subset=["particle_id"], inplace=True)
+    # print(f"{input_df.shape = }")
+    # assert (
+    #     input_df.shape[0] == n_hits - bad_indices.shape[0]
+    # ), f"{input_df.shape = }"
+
+    # Make sure the bad indices are not in the df
+    assert (
+        input_df.loc[input_df["_merge"] == "left_only"].shape[0] == 0
+    ), f"{input_df.loc[input_df['_merge'] == 'left_only'].shape = }"
+
+    input_df.reset_index(drop=True, inplace=True)
+
+    # print(f"{input_df.shape = }")
+
+    return input_df, neuron_activations
+
+
 event_list = [101, 103, 104, 105, 106, 107, 109]
-event_list = [101, 103, 104, 105, 106, 107]
 # event_list = [101, 104, 107]
-# event_list = [101, 103, 104, 107]
+# event_list = [101, 107]
 # Dataframe to store the truth particles for all events
 all_input_df = pd.DataFrame()
 all_neuron_activations = {}
 for event in event_list:
     print(f"Event {event}")
+    check_2(event_id=event)
     truth_particles = load_event_data(event_id=event, verbose=True)
 
     # Compute r, phi, z for the truth particles
@@ -595,8 +745,6 @@ for event in event_list:
     truth_particles["z"] = truth_particles["z"]
 
     input_df = match_input_data(truth_particles, event_id=event, load_data=False)
-    # input_df = truth_particles
-    print(input_df.shape)
 
     # Add various coordinate transformations
     input_df = add_coordinate_transformations(input_df)
@@ -604,9 +752,14 @@ for event in event_list:
     # Read activations
     neuron_activations = load_event_activations(event_id=event)
 
-    neuron_activations, input_df = handle_shared_hits(input_df, neuron_activations)
+    # neuron_activations, input_df = handle_shared_hits(input_df, neuron_activations)
+    verify_activation_assignement(
+        input_df, neuron_activations[list(neuron_activations)[0]].numpy()
+    )
 
-    all_input_df = pd.concat([all_input_df, input_df])
+    all_input_df = pd.concat(
+        [all_input_df, input_df], ignore_index=True
+    )  # index issues when dropping if they are not ignored here
     for key in neuron_activations:
         if key not in all_neuron_activations:
             all_neuron_activations[key] = neuron_activations[key]
@@ -616,6 +769,55 @@ for event in event_list:
             )
 
 n_hits = all_input_df.shape[0]
+
+
+all_input_df, all_neuron_activations = remove_invalid_match(
+    all_input_df, all_neuron_activations
+)
+
+# Save the input_df to a CSV file
+# all_input_df.to_csv(f"input_data_event_all.csv", index=False)
+
+# Save computed activation
+layer = 1
+model_state_dict = load_model()
+neurons_weights, neurons_biases = get_layer_parameters(model_state_dict, layer)
+
+# Calculate the neuron's output for each hit
+hit_coordinates = all_input_df[["r", "phi", "z"]]
+
+print(f"{hit_coordinates.dtypes = }")
+
+from load_data import scale_data
+
+# Scale the hit coordinates
+hit_coordinates = scale_data(hit_coordinates, scales=[1 / 1000, 1 / 3.14, 1 / 1000])
+
+# Calculate the neuron outputs
+neuron_outputs = calculate_neuron_output(
+    hit_coordinates, neurons_weights, neurons_biases
+)
+
+# # Save the neuron outputs for first layer to a CSV file
+# pd.DataFrame(neuron_outputs).to_csv(f"neuron_outputs_event_all.csv", index=False)
+
+# # Save the neuron activations for first layer to a CSV file
+# pd.DataFrame(all_neuron_activations[list(all_neuron_activations)[0]].T.numpy()).to_csv(
+#     f"neuron_activations_event_all.csv", index=False
+# )
+
+verify_activation_assignement(
+    all_input_df, all_neuron_activations[list(all_neuron_activations)[0]].numpy()
+)
+# exit()
+
+# # Drop rows with 'nan' values
+# all_input_df = all_input_df.dropna()
+# # Remove corresponding rows in neuron_activations
+# for key in all_neuron_activations:
+#     all_neuron_activations[key] = all_neuron_activations[key][
+#         :, all_input_df.index.to_numpy()
+#     ]
 
 neuron_activations = all_neuron_activations
 input_df = all_input_df

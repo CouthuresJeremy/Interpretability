@@ -125,7 +125,9 @@ def match_input_data(truth_particles, load_data=True, event_id=101):
     truth_particles_unscaled["z"] = truth_particles_unscaled["z"] * 1000
 
     # Load the input data
-    df = load_csv_data(file_name=f"input_data_event{event_id:09d}.csv", directory="csv")
+    df = load_csv_data(
+        file_name=f"input_data_event{event_id:09d}.csv", directory="input_data"
+    )
     df.columns = ["r", "phi", "z"]
     # print(df.head())
     print(df.shape)
@@ -138,13 +140,29 @@ def match_input_data(truth_particles, load_data=True, event_id=101):
     # Check for (r, phi, z) duplicates in the truth
     print(truth_particles.duplicated(subset=["x", "y", "z"]).sum())
 
+    assert (
+        df_scaled.duplicated(subset=["r", "phi", "z"]).sum() == 0
+    ), f"{df_scaled.duplicated(subset=['r', 'phi', 'z']).sum() = }"
+
+    print(f"{df_scaled.shape = } {truth_particles_unscaled.shape = }")
+
+    truth_particles_unscaled.drop_duplicates(subset=["r", "phi", "z"], inplace=True)
+
+    print(f"{df_scaled.shape = } {truth_particles_unscaled.shape = }")
+
     # Try to match (r, phi, z) from the truth to the input data
     df_scaled = df_scaled.merge(
         truth_particles_unscaled,
+        how="left",
         on=["r", "phi", "z"],
         suffixes=("", "_truth"),
-        validate="one_to_many",
+        # validate="one_to_many",
+        indicator=True,
+        validate="one_to_one",
     )
+
+    # Check the indicator
+    print(df_scaled["_merge"].value_counts())
 
     # Count duplicated [r, phi, z] in the input data
     print(df_scaled.duplicated(subset=["r", "phi", "z"]).sum())
