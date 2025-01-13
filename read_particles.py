@@ -319,7 +319,7 @@ def entropy_1D(df_continuous, feature):
             random_state=42,
         )
 
-        # Mutual_info_regression is scale invariant!
+        # Mutual_info_regression is scale invariant! (with itself at least)
 
         # Check the scale dependance of mutual_info_regression (compare with 2* scale)
         entropy_feature_scaled = mutual_info_regression(
