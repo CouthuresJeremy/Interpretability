@@ -649,7 +649,7 @@ def plot_feature_distribution(particles, truth_particles):
 # plt.show()
 
 
-def remove_invalid_match(input_df, neuron_activations, n_hits):
+def remove_invalid_match(input_df, neuron_activations):
     # Make sure the nan rows are the ones with '_merge' column as 'left_only'
     # print(input_df.loc[input_df["_merge"] == "left_only"])
     # print(input_df.loc[input_df["_merge"] == "left_only"]["particle_id"].isna())
