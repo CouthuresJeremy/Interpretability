@@ -945,6 +945,7 @@ def plot_information_coverage(event, df_information_coverage, show=False):
             positions=df_information_coverage["layer"].unique(),
             widths=1,
         )
+        # Plot the individual data points
         marker_size = 5
         marker = "o"
         plt.scatter(
@@ -952,10 +953,12 @@ def plot_information_coverage(event, df_information_coverage, show=False):
             df_information_coverage["layer"],
             s=marker_size,
             marker=marker,
+            label="Neuron",
         )
         # plt.xlabel("Information coverage [%]")
         plt.xlabel("Proficiency [%]")
         plt.ylabel("Layer")
+        plt.legend()
         # plt.title(f"Information coverage for {feature}")
         plt.title(f"Single neuron proficiency for {feature}")
         plt.grid(True)
