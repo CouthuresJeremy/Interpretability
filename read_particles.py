@@ -925,7 +925,7 @@ def compute_information_coverage(event, df_continuous):
 
 
 # Plot the data for each layer (Y axis: "layer", X axis: "mutual_information")
-def plot_information_coverage(event, df_information_coverage):
+def plot_information_coverage(event, df_information_coverage, show=False):
     output_dir = Path("./conditional_entropy")
     for feature in df_information_coverage.columns:
         if feature in ["layer", "neuron"]:
@@ -970,13 +970,15 @@ def plot_information_coverage(event, df_information_coverage):
         plt.savefig(
             output_dir / f"proficiency_single_neuron_{feature}_event{event:09d}.png"
         )
-        plt.show()
+        if show:
+            plt.show()
+        plt.close()
 
 
 # df_information_coverage = compute_information_coverage(
 #     event=event, df_continuous=df_continuous
 # )
-# plot_information_coverage(event, df_information_coverage)
+# plot_information_coverage(event, df_information_coverage, show=True)
 # exit()
 
 # Compute mutual information for all neuron outputs in a layer and save them into a CSV file
