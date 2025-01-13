@@ -924,10 +924,6 @@ def compute_information_coverage(event, df_continuous):
     return df_information_coverage
 
 
-df_information_coverage = compute_information_coverage(event, df_continuous)
-
-print(df_information_coverage)
-
 # Plot the data for each layer (Y axis: "layer", X axis: "mutual_information")
 def plot_information_coverage(event, df_information_coverage):
     output_dir = Path("./conditional_entropy")
@@ -977,6 +973,9 @@ def plot_information_coverage(event, df_information_coverage):
         plt.show()
 
 
+df_information_coverage = compute_information_coverage(
+    event=event, df_continuous=df_continuous
+)
 plot_information_coverage(event, df_information_coverage)
 
 # Compute mutual information for all neuron outputs in a layer and save them into a CSV file
