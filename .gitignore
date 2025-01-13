@@ -7,3 +7,4 @@ model/
 *.pkl
 *.txt
 *.pyg
+__pycache__/
