@@ -1031,8 +1031,22 @@ def compute_mutual_information(event, neuron_activations, df_continuous):
 
             print(f"Computing mutual information for Neuron {neuron_idx}")
 
+            discrete_features_bool = np.array(
+                [
+                    (
+                        df_continuous[feature].abs()
+                        == df_continuous[feature].abs().astype(int)
+                    ).all()
+                    for feature in df_continuous.columns
+                ]
+            )
+            discrete_features_indices = np.where(discrete_features_bool)[0]
+
             mutual_information_values = mutual_info_regression(
-                df_continuous.to_numpy(), layer_outputs[:, neuron_idx], random_state=42
+                df_continuous.to_numpy(),
+                layer_outputs[:, neuron_idx],
+                random_state=42,
+                discrete_features=discrete_features_indices,
             )
 
             # # Use Adjusted Mutual Information
@@ -1084,6 +1098,8 @@ def compute_mutual_information(event, neuron_activations, df_continuous):
     )
 
 
+del df_continuous["status"]
+del df_continuous["hit_id"]
 compute_mutual_information(event, neuron_activations, df_continuous)
 
 # # Print the feature names and their mutual information with neuron 935
