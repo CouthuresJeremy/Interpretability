@@ -521,6 +521,7 @@ def entropy_kde(data, bandwidth=0.5, verbose=False):
     sample_entropy = -np.sum(prob_samples * log_density_samples * volumes_samples)
     # print(f"Samp Entropy: {sample_entropy}")
 
+    if verbose:
         print(
             f"Data entropy: {entropy}, Sample entropy: {sample_entropy}, Sample entropy LDDP: {sample_entropy_lddp}"
         )
