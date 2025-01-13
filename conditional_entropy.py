@@ -1060,10 +1060,15 @@ def compute_full_conditional_entropy(
         information_coverage_df.to_csv(file_path_full_information_coverage, index=False)
 
 
-layer_index = len(neuron_activations) - 3
-compute_full_conditional_entropy(
-    layer_index, event, particles, neuron_activations, df_continuous
-)
+if __name__ == "__main__" and False:
+    layer_index = len(neuron_activations) - 1
+    compute_full_conditional_entropy(
+        layer_index,
+        event,
+        particles,
+        neuron_activations,
+        df_continuous,
+    )
 
 
 def compute_doublet_conditional_entropy(
