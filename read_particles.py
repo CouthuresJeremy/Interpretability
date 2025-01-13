@@ -862,19 +862,19 @@ neuron_935_output = activations_4[935]
 #         f"Conditional Entropy: {conditional_entropy(neuron_935_output, feature_values)}"
 #     )
 
-# Plot r vs z with the color of the points representing the pt
-plt.scatter(input_df["z"], input_df["r"], c=np.log10(input_df["pt"]))
-plt.xlabel("z")
-plt.ylabel("r")
-plt.colorbar()
-# plt.savefig(f"neuron_86_output_event{event:09d}_r_z.png")
-plt.show()
+# # Plot r vs z with the color of the points representing the pt
+# plt.scatter(input_df["z"], input_df["r"], c=np.log10(input_df["pt"]))
+# plt.xlabel("z")
+# plt.ylabel("r")
+# plt.colorbar()
+# # plt.savefig(f"neuron_86_output_event{event:09d}_r_z.png")
+# plt.show()
 
-plt.scatter(input_df["z"], input_df["r"], c=input_df["particle_id_mapped"])
-plt.xlabel("z")
-plt.ylabel("r")
-plt.colorbar()
-plt.show()
+# plt.scatter(input_df["z"], input_df["r"], c=input_df["particle_id_mapped"])
+# plt.xlabel("z")
+# plt.ylabel("r")
+# plt.colorbar()
+# plt.show()
 
 
 # Remove non-continuous features
