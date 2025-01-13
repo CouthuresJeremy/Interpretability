@@ -145,103 +145,104 @@ def plot_neuron_output_vs_features(neuron_output, df, features):
     plt.grid(True)
     plt.show()
 
+if __name__ == "__main__":
+    # Load the particles
+    particles = load_csv_data(
+        file_name="event000000101-hard-cut-particles.csv", directory="csv"
+    )
 
-# Load the particles
-particles = load_csv_data(
-    file_name="event000000101-hard-cut-particles.csv", directory="csv"
-)
+    # Add 3 random variables for each particles
+    # uniform, normal, poisson
+    particles["uniform_particle"] = np.random.uniform(0, 1, size=(particles.shape[0], 1))
+    particles["normal_particle"] = np.random.normal(0, 1, size=(particles.shape[0], 1))
+    particles["poisson_particle"] = np.random.poisson(1, size=(particles.shape[0], 1))
 
-# Add 3 random variables for each particles
-# uniform, normal, poisson
-particles["uniform_particle"] = np.random.uniform(0, 1, size=(particles.shape[0], 1))
-particles["normal_particle"] = np.random.normal(0, 1, size=(particles.shape[0], 1))
-particles["poisson_particle"] = np.random.poisson(1, size=(particles.shape[0], 1))
-
-# Load the truth
-truth = load_csv_data(file_name="event000000101-hard-cut-truth.csv", directory="csv")
+    # Load the truth
+    truth = load_csv_data(file_name="event000000101-hard-cut-truth.csv", directory="csv")
 
 
-# Get particles corresponding to the truth
-truth_particle_ids = truth["particle_id"].unique()
-truth_particles = particles[
-    particles["particle_id"].isin(truth_particle_ids)
-    | particles["particle_id"].isin(truth["particle_id_1"])
-    | particles["particle_id"].isin(truth["particle_id_2"])
-]
+    # Get particles corresponding to the truth
+    truth_particle_ids = truth["particle_id"].unique()
+    truth_particles = particles[
+        particles["particle_id"].isin(truth_particle_ids)
+        | particles["particle_id"].isin(truth["particle_id_1"])
+        | particles["particle_id"].isin(truth["particle_id_2"])
+    ]
 
-# Assign particle information to the truth
-truth_particles = truth.merge(
-    particles, left_on="particle_id", right_on="particle_id", suffixes=("", "_particle")
-)
+    # Assign particle information to the truth
+    truth_particles = truth.merge(
+        particles, left_on="particle_id", right_on="particle_id", suffixes=("", "_particle")
+    )
 
-# Compute r, phi, z for the truth particles
-truth_particles["r"] = np.sqrt(truth_particles["x"] ** 2 + truth_particles["y"] ** 2)
-truth_particles["phi"] = np.arctan2(truth_particles["y"], truth_particles["x"])
-truth_particles["z"] = truth_particles["z"]
+    # Compute r, phi, z for the truth particles
+    truth_particles["r"] = np.sqrt(truth_particles["x"] ** 2 + truth_particles["y"] ** 2)
+    truth_particles["phi"] = np.arctan2(truth_particles["y"], truth_particles["x"])
+    truth_particles["z"] = truth_particles["z"]
 
-input_df = match_input_data(truth_particles, load_data=True)
+    input_df = match_input_data(truth_particles, load_data=True)
 
-# Add various coordinate transformations
-input_df = add_coordinate_transformations(input_df)
+    # Add various coordinate transformations
+    input_df = add_coordinate_transformations(input_df)
 
-# Map particle_id to [0..N]
-particle_id_map = {
-    particle_id: i for i, particle_id in enumerate(input_df["particle_id"].unique())
-}
-input_df["particle_id_mapped"] = input_df["particle_id"].map(particle_id_map)
+    # Map particle_id to [0..N]
+    particle_id_map = {
+        particle_id: i for i, particle_id in enumerate(input_df["particle_id"].unique())
+    }
+    input_df["particle_id_mapped"] = input_df["particle_id"].map(particle_id_map)
 
 
 from sklearn.feature_selection import mutual_info_regression
 
-n_hits = input_df.shape[0]
+if __name__ == "__main__":
+    n_hits = input_df.shape[0]
 
-# Read activations
-event = 100
-event = 101
-activations = torch.load(
-    f"activations/activations_event{event:09d}.pt", map_location=torch.device("cpu")
-)
-# print(activations)
+    # Read activations
+    event = 100
+    event = 101
+    activations = torch.load(
+        f"activations/activations_event{event:09d}.pt", map_location=torch.device("cpu")
+    )
+    # print(activations)
 
-keys = list(activations)
-# print(keys)
-layer_1_name = keys[0]
-layer_3_name = keys[2]
-layer_4_name = keys[3]
+    keys = list(activations)
+    # print(keys)
+    layer_1_name = keys[0]
+    layer_3_name = keys[2]
+    layer_4_name = keys[3]
 
-# Transpose the activation to get the neuron distributions
-neuron_activations = {
-    layer_name: layer_activations.T
-    for layer_name, layer_activations in activations.items()
-}
+    # Transpose the activation to get the neuron distributions
+    neuron_activations = {
+        layer_name: layer_activations.T
+        for layer_name, layer_activations in activations.items()
+    }
 
-activations_1 = neuron_activations[layer_1_name].numpy()
-activations_3 = neuron_activations[layer_3_name].numpy()
-activations_4 = neuron_activations[layer_4_name].numpy()
-# print(activations_3.shape)
-# print(neuron_935_weights.T.shape)
+    activations_1 = neuron_activations[layer_1_name].numpy()
+    activations_3 = neuron_activations[layer_3_name].numpy()
+    activations_4 = neuron_activations[layer_4_name].numpy()
+    # print(activations_3.shape)
+    # print(neuron_935_weights.T.shape)
 
-# Do input*weights + biases
-# neuron_935_output = activations_3.T @ neuron_935_weights.T + neuron_935_biases
+    # Do input*weights + biases
+    # neuron_935_output = activations_3.T @ neuron_935_weights.T + neuron_935_biases
 
-neuron_86_output = activations_1[86]
-neuron_44_output = activations_1[44]
-neuron_935_output = activations_4[935]
+    neuron_86_output = activations_1[86]
+    neuron_44_output = activations_1[44]
+    neuron_935_output = activations_4[935]
 
-# for feature in input_df.columns:
-#     feature_values = input_df[feature].to_numpy()
-#     # If the feature is not continuous, skip
-#     if not np.issubdtype(feature_values.dtype, np.number):
-#         print(f"Feature {feature} is not continuous")
-#         continue
-#     print(f"Feature: {feature}")
-#     print(
-#         f"Conditional Entropy: {conditional_entropy(neuron_935_output, feature_values)}"
-#     )
+    # for feature in input_df.columns:
+    #     feature_values = input_df[feature].to_numpy()
+    #     # If the feature is not continuous, skip
+    #     if not np.issubdtype(feature_values.dtype, np.number):
+    #         print(f"Feature {feature} is not continuous")
+    #         continue
+    #     print(f"Feature: {feature}")
+    #     print(
+    #         f"Conditional Entropy: {conditional_entropy(neuron_935_output, feature_values)}"
+    #     )
 
 
-# Remove non-continuous features
-df_continuous = input_df.select_dtypes(include=[np.number])
+    # Remove non-continuous features
+    df_continuous = input_df.select_dtypes(include=[np.number])
 
 import os
 from sklearn.feature_selection import mutual_info_regression
@@ -760,7 +761,8 @@ def conditional_entropy_histogram(data_y, data_x, bins=2):
 
 
 # Example dataset: Continuous variables
-np.random.seed(42)
+if __name__ == "__main__":
+    np.random.seed(42)
 
 # feature_values = df_continuous["pt"].to_numpy()  # Convert feature column to NumPy array
 
@@ -782,25 +784,26 @@ import numpy as np
 import pandas as pd
 from itertools import combinations
 
-joint_mutual_information_values = {}
+if __name__ == "__main__":
+    joint_mutual_information_values = {}
 
-# Assuming `layer_index` is intended to be the last layer
-layer_index = len(neuron_activations) - 1
-layer = list(neuron_activations)[layer_index]
-layer_outputs = np.array(
-    neuron_activations[layer]
-).T  # Transpose for shape (samples, neurons)
+    # Assuming `layer_index` is intended to be the last layer
+    layer_index = len(neuron_activations) - 1
+    layer = list(neuron_activations)[layer_index]
+    layer_outputs = np.array(
+        neuron_activations[layer]
+    ).T  # Transpose for shape (samples, neurons)
 
-# Remove duplicates [r, phi, z] in feature
-df_continuous = df_continuous.drop_duplicates(
-    subset=["r", "phi", "z"], ignore_index=True
-)
+    # Remove duplicates [r, phi, z] in feature
+    df_continuous = df_continuous.drop_duplicates(
+        subset=["r", "phi", "z"], ignore_index=True
+    )
 
-# Add 3 random variables for each hit
-# uniform, normal, poisson
-df_continuous["uniform_hit"] = np.random.uniform(0, 1, size=(df_continuous.shape[0], 1))
-df_continuous["normal_hit"] = np.random.normal(0, 1, size=(df_continuous.shape[0], 1))
-df_continuous["poisson_hit"] = np.random.poisson(1, size=(df_continuous.shape[0], 1))
+    # Add 3 random variables for each hit
+    # uniform, normal, poisson
+    df_continuous["uniform_hit"] = np.random.uniform(0, 1, size=(df_continuous.shape[0], 1))
+    df_continuous["normal_hit"] = np.random.normal(0, 1, size=(df_continuous.shape[0], 1))
+    df_continuous["poisson_hit"] = np.random.poisson(1, size=(df_continuous.shape[0], 1))
 
 
 def plot_entropy_distribution_coverage(df_continuous, layer_outputs):
@@ -1317,7 +1320,7 @@ def compute_doublet_conditional_entropy(
             )
 
 
-layer_index = len(neuron_activations) - 1
+# layer_index = len(neuron_activations) - 1
 # compute_doublet_conditional_entropy(
 #     layer_index, event, particles, neuron_activations, df_continuous
 # )
@@ -1671,7 +1674,7 @@ def plot_2d_density(df_continuous):
 # Plot isocurves of the output of each neuron of layer 4 one by one
 layer = 4
 
-layer_name = keys[layer - 1]
+# layer_name = keys[layer - 1]
 # isocurves_dir_layer = Path(f"isocurves_layer_{layer}")
 # isocurves_dir_layer.mkdir(exist_ok=True)
 
@@ -1765,7 +1768,7 @@ layer_name = keys[layer - 1]
 # Do the same for layer 13
 layer = 9
 
-layer_name = keys[layer - 1]
+# layer_name = keys[layer - 1]
 # layer_name_activations = keys[layer - 2]
 
 
