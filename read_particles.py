@@ -973,10 +973,11 @@ def plot_information_coverage(event, df_information_coverage):
         plt.show()
 
 
-df_information_coverage = compute_information_coverage(
-    event=event, df_continuous=df_continuous
-)
-plot_information_coverage(event, df_information_coverage)
+# df_information_coverage = compute_information_coverage(
+#     event=event, df_continuous=df_continuous
+# )
+# plot_information_coverage(event, df_information_coverage)
+# exit()
 
 # Compute mutual information for all neuron outputs in a layer and save them into a CSV file
 def compute_mutual_information(event, neuron_activations, df_continuous):
@@ -1100,6 +1101,12 @@ def compute_mutual_information(event, neuron_activations, df_continuous):
 del df_continuous["status"]
 del df_continuous["hit_id"]
 compute_mutual_information(event, neuron_activations, df_continuous)
+
+# Plot the information coverage for the event
+df_information_coverage = compute_information_coverage(
+    event=event, df_continuous=df_continuous
+)
+plot_information_coverage(event, df_information_coverage)
 
 # # Print the feature names and their mutual information with neuron 935
 # for i, feature in enumerate(df_continuous.columns):
