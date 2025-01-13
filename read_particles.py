@@ -752,7 +752,13 @@ for event in event_list:
     # Read activations
     neuron_activations = load_event_activations(event_id=event)
 
-    # neuron_activations, input_df = handle_shared_hits(input_df, neuron_activations)
+    input_df, neuron_activations = remove_invalid_match(input_df, neuron_activations)
+
+    input_df = match_input_data(
+        truth_particles, event_id=event, load_data=False, all_data=True
+    )
+
+    neuron_activations, input_df = handle_shared_hits(input_df, neuron_activations)
     verify_activation_assignement(
         input_df, neuron_activations[list(neuron_activations)[0]].numpy()
     )
@@ -770,10 +776,6 @@ for event in event_list:
 
 n_hits = all_input_df.shape[0]
 
-
-all_input_df, all_neuron_activations = remove_invalid_match(
-    all_input_df, all_neuron_activations
-)
 
 # Save the input_df to a CSV file
 # all_input_df.to_csv(f"input_data_event_all.csv", index=False)
