@@ -245,23 +245,8 @@ def handle_shared_hits(input_df, neuron_activations):
         activations_1_df.iloc[input_df_keys].reset_index(drop=True).T
     ).to_numpy()
 
-    dropped_indices = []
-
-    try:
-        # Verify that the assignment is correct
-        verify_activation_assignement(input_df, duplicated_activations_1)
-    except AssertionError as e:
-        input_df, duplicated_activations_1, dropped_indices = (
-            drop_wrong_activation_assignement(input_df, duplicated_activations_1)
-        )
-
-        print(f"Reverifying assignement")
-        # Verify that the assignment is correct
-        # verify_activation_assignement(input_df, duplicated_activations_1, verbose=True)
-        verify_activation_assignement(input_df, duplicated_activations_1, verbose=False)
-
-        print(f"{input_df_keys.shape = }")
-        print(f"{input_df_keys = }")
+    # Verify that the assignment is correct
+    verify_activation_assignement(input_df, duplicated_activations_1)
 
     for layer in neuron_activations:
         # Add the duplicated activations to the neuron activations
@@ -270,24 +255,10 @@ def handle_shared_hits(input_df, neuron_activations):
             neuron_activations_layer_df.iloc[input_df_keys].reset_index(drop=True).T
         ).to_numpy()
 
-        # Keep only the rows that are in the input_df
-        duplicated_activations = np.delete(
-            duplicated_activations, dropped_indices, axis=1
-        )
-
         # print(f"{duplicated_activations.shape = }")
 
         neuron_activations[layer] = torch.tensor(duplicated_activations)
         # print(neuron_activations[layer].shape)
-
-    if dropped_indices:
-        print(f"{len(dropped_indices)} hits were dropped")
-
-        activations_1_df = pd.DataFrame(neuron_activations[keys[0]].T)
-        duplicated_activations_1 = activations_1_df.reset_index(drop=True).T.to_numpy()
-
-        # Verify that the assignment is correct
-        verify_activation_assignement(input_df, duplicated_activations_1)
 
     return neuron_activations, input_df
 
