@@ -1001,7 +1001,13 @@ def compute_mutual_information(event, neuron_activations, df_continuous):
 
 
 def compute_layer_single_mutual_information(
-    event, neuron_activations, df_continuous, layer_index, layer
+    event,
+    neuron_activations,
+    df_continuous,
+    layer_index,
+    layer,
+    start_neuron=0,
+    end_neuron=None,
 ):
     """
     Compute mutual information of single neurons in a layer and save them into a CSV file.
@@ -1014,11 +1020,21 @@ def compute_layer_single_mutual_information(
 
     print(f"Computing mutual information for Layer {layer_index}")
 
+    if end_neuron is None:
+        end_neuron = layer_outputs.shape[1] - 1
+
+    assert end_neuron < layer_outputs.shape[1], f"{end_neuron = }"
+
     output_dir = Path("conditional_entropy")
     output_dir.mkdir(exist_ok=True)
 
     # File path for the current layer's CSV
     layer_file_path = f"mutual_information_event{event:09d}_layer{layer_index}.csv"
+
+    if end_neuron - start_neuron != layer_outputs.shape[1] - 1:
+        layer_file_path = layer_file_path.replace(
+            ".csv", f"_range{start_neuron}-{end_neuron}.csv"
+        )
 
     layer_file_path = output_dir / layer_file_path
 
@@ -1027,7 +1043,12 @@ def compute_layer_single_mutual_information(
         layer_index, layer_file_path
     )
 
-    for neuron_idx in range(layer_outputs.shape[1]):
+    assert all(
+        start_neuron <= processed_neurons[i] <= end_neuron
+        for i in range(len(processed_neurons))
+    ), f"Processed neurons are not in range {start_neuron}-{end_neuron}: {processed_neurons = }"
+
+    for neuron_idx in range(start_neuron, end_neuron + 1):
         if neuron_idx in processed_neurons:
             continue  # Skip already processed neurons
 
