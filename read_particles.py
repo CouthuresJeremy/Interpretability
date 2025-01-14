@@ -973,87 +973,13 @@ def compute_mutual_information(event, neuron_activations, df_continuous):
     reversed_neuron_activations = list(neuron_activations.keys())[::-1]
     for layer_index, layer in enumerate(reversed_neuron_activations):
         start_time = time.time()
+
+        # Make the layer index find the correct layer (reversed)
         layer_index = len(neuron_activations) - layer_index
 
-        # Get all neuron outputs of the current layer as a 2D array (shape: num_samples x num_neurons)
-        layer_outputs = np.array(
-            neuron_activations[layer]
-        ).T  # Transpose to match mutual_info_regression input format
-
-        print(f"Computing mutual information for Layer {layer_index}")
-
-        output_dir = Path("conditional_entropy")
-        output_dir.mkdir(exist_ok=True)
-
-        # File path for the current layer's CSV
-        layer_file_path = f"mutual_information_event{event:09d}_layer{layer_index}.csv"
-
-        layer_file_path = output_dir / layer_file_path
-
-        # Initialize or load existing data for the layer
-        if os.path.exists(layer_file_path):
-            mutual_information_df_layer = pd.read_csv(layer_file_path)
-            processed_neurons = mutual_information_df_layer["neuron"].tolist()
-            print(
-                f"Found existing file for Layer {layer_index}. Resuming from Neuron {len(processed_neurons)}"
-            )
-        else:
-            mutual_information_df_layer = pd.DataFrame()
-            processed_neurons = []
-
-        for neuron_idx in range(layer_outputs.shape[1]):
-            if neuron_idx in processed_neurons:
-                continue  # Skip already processed neurons
-
-            print(f"Computing mutual information for Neuron {neuron_idx}")
-
-            discrete_features_bool = np.array(
-                [
-                    (
-                        df_continuous[feature].abs()
-                        == df_continuous[feature].abs().astype(int)
-                    ).all()
-                    for feature in df_continuous.columns
-                ]
-            )
-            discrete_features_indices = np.where(discrete_features_bool)[0]
-
-            mutual_information_values = mutual_info_regression(
-                df_continuous.to_numpy(),
-                layer_outputs[:, neuron_idx],
-                random_state=42,
-                discrete_features=discrete_features_indices,
-            )
-
-            # # Use Adjusted Mutual Information
-            # from sklearn.metrics import adjusted_mutual_info_score
-
-            # adjusted_mutual_information_values = []
-            # for i, feature in enumerate(df_continuous.columns):
-            #     adjusted_mutual_information_values.append(
-            #         adjusted_mutual_info_score(
-            #             df_continuous[feature].to_numpy(), layer_outputs[:, neuron_idx]
-            #         )
-            #     )
-
-            # Create a new row for the current neuron
-            new_row = {
-                "layer": layer_index,
-                "neuron": neuron_idx,
-                **{
-                    feature: mutual_information_values[i]
-                    for i, feature in enumerate(df_continuous.columns)
-                },
-            }
-
-            # Append the new row to the existing DataFrame for the layer
-            mutual_information_df_layer = pd.concat(
-                [mutual_information_df_layer, pd.DataFrame([new_row])],
-                ignore_index=True,
-            )
-
-            # Save the updated layer data to the CSV file
-            mutual_information_df_layer.to_csv(layer_file_path, index=False)
+        mutual_information_df_layer = compute_layer_single_mutual_information(
+            event, neuron_activations, df_continuous, layer_index, layer
+        )
 
         # Append the processed layer to the global DataFrame
         mutual_information_df = pd.concat(
@@ -1072,6 +998,95 @@ def compute_mutual_information(event, neuron_activations, df_continuous):
     mutual_information_df.to_csv(
         f"mutual_information_event{event:09d}.csv", index=False
     )
+
+
+def compute_layer_single_mutual_information(
+    event, neuron_activations, df_continuous, layer_index, layer
+):
+    """
+    Compute mutual information of single neurons in a layer and save them into a CSV file.
+    """
+
+    # Get all neuron outputs of the current layer as a 2D array (shape: num_samples x num_neurons)
+    layer_outputs = np.array(
+        neuron_activations[layer]
+    ).T  # Transpose to match mutual_info_regression input format
+
+    print(f"Computing mutual information for Layer {layer_index}")
+
+    output_dir = Path("conditional_entropy")
+    output_dir.mkdir(exist_ok=True)
+
+    # File path for the current layer's CSV
+    layer_file_path = f"mutual_information_event{event:09d}_layer{layer_index}.csv"
+
+    layer_file_path = output_dir / layer_file_path
+
+    # Initialize or load existing data for the layer
+    if os.path.exists(layer_file_path):
+        mutual_information_df_layer = pd.read_csv(layer_file_path)
+        processed_neurons = mutual_information_df_layer["neuron"].tolist()
+        print(
+            f"Found existing file for Layer {layer_index}. Resuming from Neuron {len(processed_neurons)}"
+        )
+    else:
+        mutual_information_df_layer = pd.DataFrame()
+        processed_neurons = []
+
+    for neuron_idx in range(layer_outputs.shape[1]):
+        if neuron_idx in processed_neurons:
+            continue  # Skip already processed neurons
+
+        print(f"Computing mutual information for Neuron {neuron_idx}")
+
+        discrete_features_bool = np.array(
+            [
+                (
+                    df_continuous[feature].abs()
+                    == df_continuous[feature].abs().astype(int)
+                ).all()
+                for feature in df_continuous.columns
+            ]
+        )
+        discrete_features_indices = np.where(discrete_features_bool)[0]
+
+        mutual_information_values = mutual_info_regression(
+            df_continuous.to_numpy(),
+            layer_outputs[:, neuron_idx],
+            random_state=42,
+            discrete_features=discrete_features_indices,
+        )
+
+        # # Use Adjusted Mutual Information
+        # from sklearn.metrics import adjusted_mutual_info_score
+
+        # adjusted_mutual_information_values = []
+        # for i, feature in enumerate(df_continuous.columns):
+        #     adjusted_mutual_information_values.append(
+        #         adjusted_mutual_info_score(
+        #             df_continuous[feature].to_numpy(), layer_outputs[:, neuron_idx]
+        #         )
+        #     )
+
+        # Create a new row for the current neuron
+        new_row = {
+            "layer": layer_index,
+            "neuron": neuron_idx,
+            **{
+                feature: mutual_information_values[i]
+                for i, feature in enumerate(df_continuous.columns)
+            },
+        }
+
+        # Append the new row to the existing DataFrame for the layer
+        mutual_information_df_layer = pd.concat(
+            [mutual_information_df_layer, pd.DataFrame([new_row])],
+            ignore_index=True,
+        )
+
+        # Save the updated layer data to the CSV file
+        mutual_information_df_layer.to_csv(layer_file_path, index=False)
+    return mutual_information_df_layer
 
 
 del df_continuous["status"]
