@@ -1023,15 +1023,9 @@ def compute_layer_single_mutual_information(
     layer_file_path = output_dir / layer_file_path
 
     # Initialize or load existing data for the layer
-    if os.path.exists(layer_file_path):
-        mutual_information_df_layer = pd.read_csv(layer_file_path)
-        processed_neurons = mutual_information_df_layer["neuron"].tolist()
-        print(
-            f"Found existing file for Layer {layer_index}. Resuming from Neuron {len(processed_neurons)}"
-        )
-    else:
-        mutual_information_df_layer = pd.DataFrame()
-        processed_neurons = []
+    mutual_information_df_layer, processed_neurons = load_processed_neurons(
+        layer_index, layer_file_path
+    )
 
     for neuron_idx in range(layer_outputs.shape[1]):
         if neuron_idx in processed_neurons:
@@ -1087,6 +1081,19 @@ def compute_layer_single_mutual_information(
         # Save the updated layer data to the CSV file
         mutual_information_df_layer.to_csv(layer_file_path, index=False)
     return mutual_information_df_layer
+
+
+def load_processed_neurons(layer_index, layer_file_path):
+    if os.path.exists(layer_file_path):
+        mutual_information_df_layer = pd.read_csv(layer_file_path)
+        processed_neurons = mutual_information_df_layer["neuron"].tolist()
+        print(
+            f"Found existing file for Layer {layer_index}. Resuming from Neuron {len(processed_neurons)}"
+        )
+    else:
+        mutual_information_df_layer = pd.DataFrame()
+        processed_neurons = []
+    return mutual_information_df_layer, processed_neurons
 
 
 del df_continuous["status"]
